@@ -1,0 +1,55 @@
+{
+  "name": "jarana-registro-horario",
+  "version": "2.0.0",
+  "description": "Sistema de registro horario unificado con Google OAuth - Multi-tenant",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
+    "dev:server": "nodemon src/index.js",
+    "dev:client": "cd client && npm run dev",
+    "build": "cd client && npm run build",
+    "start": "node src/index.js",
+    "db:sync": "node src/database/sync.js",
+    "check-env": "node scripts/check-env.js",
+    "test-db": "node scripts/test-db-connection.js",
+    "postinstall": "cd client && npm install",
+    "render:build": "npm install && cd client && npm install && npm run build"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "express-rate-limit": "^6.10.0",
+    "express-session": "^1.17.3",
+    "express-validator": "^7.0.1",
+    "helmet": "^7.0.0",
+    "jsonwebtoken": "^9.0.2",
+    "multer": "^2.0.2",
+    "openai": "^6.7.0",
+    "passport": "^0.7.0",
+    "passport-google-oauth20": "^2.0.0",
+    "pg": "^8.11.3",
+    "pg-hstore": "^2.3.4",
+    "qrcode": "^1.5.3",
+    "sequelize": "^6.32.1",
+    "speakeasy": "^2.0.0",
+    "uuid": "^9.0.1"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "nodemon": "^3.0.2"
+  },
+  "keywords": [
+    "time-tracking",
+    "nodejs",
+    "react",
+    "express",
+    "sequelize",
+    "jwt",
+    "monorepo"
+  ],
+  "author": "",
+  "license": "MIT"
+}

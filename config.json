@@ -1,0 +1,22 @@
+{
+  "name": "JARANA",
+  "version": "1.0.0",
+  "description": "Sistema de Registro Horario",
+  "node_version": "20.10.0",
+  "ports": {
+    "backend": 3000,
+    "frontend": 5173
+  },
+  "directories": {
+    "backend": "app/back",
+    "frontend": "app/front"
+  },
+  "git": {
+    "auto_update": true,
+    "branch": "main"
+  },
+  "services": {
+    "backend_command": "npm run dev",
+    "frontend_command": "npm run dev"
+  }
+}
