@@ -1,0 +1,7 @@
+# Redirects para React Router (SPA)
+/*    /index.html   200
+
+# Redirect para rutas específicas
+/admin/*  /index.html  200
+/employee-portal/*  /index.html  200
+/employee-kiosk/*  /index.html  200
