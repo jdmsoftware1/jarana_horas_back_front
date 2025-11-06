@@ -16,8 +16,11 @@ export default defineConfig({
   },
   build: {
     outDir: 'dist',
-    sourcemap: true
+    sourcemap: true,
+    // Copiar archivos de public/ al dist/
+    copyPublicDir: true
   },
+  publicDir: 'public',
   test: {
     globals: true,
     environment: 'jsdom',
