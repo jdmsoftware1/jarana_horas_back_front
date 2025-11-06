@@ -42,7 +42,7 @@ const HomePage = () => {
         <div className="text-center mb-16">
           <div className="flex justify-center mb-6">
             <img 
-              src="/src/Images/logo_jarana.jpg" 
+              src="/images/logo_jarana.jpg" 
               alt="Jarana Logo" 
               className="h-24 w-24 rounded-full object-cover shadow-lg"
             />

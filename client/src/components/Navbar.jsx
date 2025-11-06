@@ -26,7 +26,7 @@ const Navbar = () => {
           <div className="flex items-center">
             <div className="flex-shrink-0 flex items-center">
               <img 
-                src="/src/Images/logo_jarana.jpg" 
+                src="/images/logo_jarana.jpg" 
                 alt="Jarana Logo" 
                 className="h-10 w-10 rounded-full object-cover"
               />

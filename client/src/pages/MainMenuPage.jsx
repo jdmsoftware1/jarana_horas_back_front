@@ -28,7 +28,7 @@ const MainMenuPage = () => {
         <div className="container mx-auto px-4 text-center">
           <div className="flex justify-center mb-4">
             <img 
-              src="/src/Images/logo_jarana.jpg" 
+              src="/images/logo_jarana.jpg" 
               alt="Jarana Logo" 
               className="h-16 w-16 rounded-full object-cover"
             />
