@@ -421,11 +421,13 @@ const EmployeesContent = () => {
   const [employeesWithRecords, setEmployeesWithRecords] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [showEditForm, setShowEditForm] = useState(false);
   const [showQRModal, setShowQRModal] = useState(false);
+  const [showHoursComparisonModal, setShowHoursComparisonModal] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [qrCodeData, setQRCodeData] = useState(null);
 
-  // Cargar empleados con sus últimos registros
+  // Cargar empleados con sus últimos registros y estadísticas de horas
   const fetchEmployees = async () => {
     try {
       const response = await authenticatedFetch(`${getApiUrl()}/employees`);
@@ -434,28 +436,36 @@ const EmployeesContent = () => {
         const employeesData = await response.json();
         setEmployees(employeesData);
         
-        // Obtener último registro para cada empleado
+        // Obtener último registro y estadísticas de horas para cada empleado
         const employeesWithLastRecord = await Promise.all(
           employeesData.map(async (employee) => {
             try {
+              // Obtener último registro
               const recordsResponse = await authenticatedFetch(`${getApiUrl()}/records/employee/${employee.id}?limit=1`);
+              let lastRecord = null;
               if (recordsResponse.ok) {
                 const records = await recordsResponse.json();
-                const lastRecord = records.length > 0 ? records[0] : null;
-                return {
-                  ...employee,
-                  lastRecord
-                };
+                lastRecord = records.length > 0 ? records[0] : null;
               }
+              
+              // Obtener estadísticas de horas
+              const statsResponse = await authenticatedFetch(`${getApiUrl()}/records/employee/${employee.id}/hours-stats`);
+              let hoursStats = null;
+              if (statsResponse.ok) {
+                hoursStats = await statsResponse.json();
+              }
+              
               return {
                 ...employee,
-                lastRecord: null
+                lastRecord,
+                hoursStats
               };
             } catch (error) {
-              console.error(`Error fetching records for employee ${employee.id}:`, error);
+              console.error(`Error fetching data for employee ${employee.id}:`, error);
               return {
                 ...employee,
-                lastRecord: null
+                lastRecord: null,
+                hoursStats: null
               };
             }
           })
@@ -495,6 +505,22 @@ const EmployeesContent = () => {
           onClose={() => setShowCreateForm(false)}
           onSuccess={() => {
             setShowCreateForm(false);
+            fetchEmployees();
+          }}
+        />
+      )}
+
+      {/* Edit Employee Modal */}
+      {showEditForm && selectedEmployee && (
+        <EditEmployeeModal 
+          employee={selectedEmployee}
+          onClose={() => {
+            setShowEditForm(false);
+            setSelectedEmployee(null);
+          }}
+          onSuccess={() => {
+            setShowEditForm(false);
+            setSelectedEmployee(null);
             fetchEmployees();
           }}
         />
@@ -545,6 +571,9 @@ const EmployeesContent = () => {
                 Último Fichaje
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-neutral-dark uppercase tracking-wider">
+                Horas Trabajadas
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-neutral-dark uppercase tracking-wider">
                 Acciones
               </th>
             </tr>
@@ -552,7 +581,7 @@ const EmployeesContent = () => {
           <tbody className="bg-white divide-y divide-neutral-mid/20">
             {loading ? (
               <tr>
-                <td colSpan="5" className="px-6 py-4 text-center">
+                <td colSpan="6" className="px-6 py-4 text-center">
                   <div className="flex justify-center">
                     <LoadingSpinner />
                   </div>
@@ -560,7 +589,7 @@ const EmployeesContent = () => {
               </tr>
             ) : employeesWithRecords.length === 0 ? (
               <tr>
-                <td colSpan="5" className="px-6 py-4 text-center text-brand-medium">
+                <td colSpan="6" className="px-6 py-4 text-center text-brand-medium">
                   No hay empleados registrados
                 </td>
               </tr>
@@ -618,6 +647,32 @@ const EmployeesContent = () => {
                       <span className="text-gray-400">Sin registros</span>
                     )}
                   </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-dark">
+                    {employee.hoursStats ? (
+                      <div className="space-y-1">
+                        <div className="flex items-center space-x-2">
+                          <span className="text-xs font-medium text-brand-medium">Hoy:</span>
+                          <span className="text-xs font-semibold text-neutral-dark">
+                            {employee.hoursStats.today.hours}h {employee.hoursStats.today.minutes}m
+                          </span>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <span className="text-xs font-medium text-brand-medium">Semana:</span>
+                          <span className="text-xs font-semibold text-neutral-dark">
+                            {employee.hoursStats.week.hours}h {employee.hoursStats.week.minutes}m
+                          </span>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <span className="text-xs font-medium text-brand-medium">Mes:</span>
+                          <span className="text-xs font-semibold text-neutral-dark">
+                            {employee.hoursStats.month.hours}h {employee.hoursStats.month.minutes}m
+                          </span>
+                        </div>
+                      </div>
+                    ) : (
+                      <span className="text-gray-400 text-xs">Sin datos</span>
+                    )}
+                  </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
                     <button 
                       onClick={() => {
@@ -630,7 +685,26 @@ const EmployeesContent = () => {
                     >
                       <QrCode className="h-4 w-4" />
                     </button>
-                    <button className="text-blue-600 hover:text-blue-900">Editar</button>
+                    <button 
+                      onClick={() => {
+                        setSelectedEmployee(employee);
+                        setShowHoursComparisonModal(true);
+                      }}
+                      className="px-3 py-1 text-xs bg-brand-light text-brand-cream rounded hover:bg-brand-medium transition-colors"
+                      title="Ver Análisis de Horas"
+                    >
+                      📊 Análisis
+                    </button>
+                    <button 
+                      onClick={() => {
+                        setSelectedEmployee(employee);
+                        setShowEditForm(true);
+                      }}
+                      className="text-blue-600 hover:text-blue-900"
+                      title="Editar Empleado"
+                    >
+                      Editar
+                    </button>
                   </td>
                 </tr>
               ))
@@ -638,6 +712,17 @@ const EmployeesContent = () => {
           </tbody>
         </table>
       </div>
+
+      {/* Hours Comparison Modal */}
+      {showHoursComparisonModal && selectedEmployee && (
+        <HoursComparisonModal
+          employee={selectedEmployee}
+          onClose={() => {
+            setShowHoursComparisonModal(false);
+            setSelectedEmployee(null);
+          }}
+        />
+      )}
     </div>
   );
 };
@@ -1365,7 +1450,8 @@ const WeeklyViewContent = () => {
   const [currentWeek, setCurrentWeek] = useState(new Date());
   const [loading, setLoading] = useState(true);
 
-  const daysOfWeek = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+  // Array de días: 0=Domingo, 1=Lunes, 2=Martes, 3=Miércoles, 4=Jueves, 5=Viernes, 6=Sábado
+  const daysOfWeek = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
   
   // Get week dates
   const getWeekDates = (date) => {
@@ -2088,6 +2174,150 @@ const CreateEmployeeModal = ({ onClose, onSuccess }) => {
   );
 };
 
+// Edit Employee Modal
+const EditEmployeeModal = ({ employee, onClose, onSuccess }) => {
+  const [formData, setFormData] = useState({
+    name: employee.name || '',
+    email: employee.email || '',
+    isActive: employee.isActive !== undefined ? employee.isActive : true,
+    pin: '' // PIN vacío por defecto, solo se cambia si el usuario lo rellena
+  });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+
+    try {
+      // Solo enviar PIN si se ha rellenado
+      const updateData = {
+        name: formData.name,
+        email: formData.email,
+        isActive: formData.isActive
+      };
+      
+      if (formData.pin && formData.pin.length >= 4) {
+        updateData.pin = formData.pin;
+      }
+
+      const response = await authenticatedFetch(`${getApiUrl()}/employees/${employee.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(updateData)
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Error actualizando empleado');
+      }
+
+      onSuccess();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-xl p-6 w-full max-w-md mx-4">
+        <h3 className="text-lg font-semibold text-neutral-dark mb-4">
+          Editar Empleado
+        </h3>
+
+        {error && (
+          <div className="mb-4 p-3 bg-red-100 border border-red-300 text-red-700 rounded">
+            {error}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-neutral-dark mb-2">
+              Nombre completo
+            </label>
+            <input
+              type="text"
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              className="w-full px-3 py-2 border border-neutral-mid/30 rounded-lg focus:border-brand-light focus:ring-0 focus:outline-none"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-neutral-dark mb-2">
+              Email
+            </label>
+            <input
+              type="email"
+              value={formData.email}
+              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              className="w-full px-3 py-2 border border-neutral-mid/30 rounded-lg focus:border-brand-light focus:ring-0 focus:outline-none"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-neutral-dark mb-2">
+              Nuevo PIN (opcional, 4-8 dígitos)
+            </label>
+            <input
+              type="password"
+              value={formData.pin}
+              onChange={(e) => setFormData({ ...formData, pin: e.target.value })}
+              className="w-full px-3 py-2 border border-neutral-mid/30 rounded-lg focus:border-brand-light focus:ring-0 focus:outline-none"
+              minLength="4"
+              maxLength="8"
+              placeholder="Dejar vacío para no cambiar"
+            />
+            <p className="text-xs text-brand-medium mt-1">
+              Solo rellena este campo si quieres cambiar el PIN
+            </p>
+          </div>
+
+          <div>
+            <label className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                checked={formData.isActive}
+                onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
+                className="rounded border-neutral-mid/30"
+              />
+              <span className="text-sm font-medium text-neutral-dark">
+                Empleado Activo
+              </span>
+            </label>
+          </div>
+
+          <div className="flex justify-end space-x-3 pt-4">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 text-brand-medium hover:text-neutral-dark"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="px-4 py-2 bg-brand-light text-brand-cream rounded-lg hover:bg-brand-medium disabled:opacity-50"
+            >
+              {loading ? 'Guardando...' : 'Guardar Cambios'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
 // QR Code Modal
 const QRCodeModal = ({ employee, qrCodeData, onClose, onRegenerate }) => {
   return (
@@ -2141,14 +2371,15 @@ const ScheduleModal = ({ employee, onClose }) => {
   const [loading, setLoading] = useState(false);
   const [loadingSchedules, setLoadingSchedules] = useState(true);
 
+  // Array de días: 0=Domingo, 1=Lunes, 2=Martes, 3=Miércoles, 4=Jueves, 5=Viernes, 6=Sábado
   const daysOfWeek = [
+    { id: 0, name: 'Domingo' },
     { id: 1, name: 'Lunes' },
     { id: 2, name: 'Martes' },
     { id: 3, name: 'Miércoles' },
     { id: 4, name: 'Jueves' },
     { id: 5, name: 'Viernes' },
-    { id: 6, name: 'Sábado' },
-    { id: 0, name: 'Domingo' }
+    { id: 6, name: 'Sábado' }
   ];
 
   // Load existing schedules or initialize with defaults
@@ -3217,6 +3448,7 @@ const WeeklySchedulesContent = () => {
                                   .filter(day => day.isWorkingDay)
                                   .sort((a, b) => a.dayOfWeek - b.dayOfWeek)
                                   .map((day, idx) => {
+                                    // 0=Domingo, 1=Lunes, 2=Martes, 3=Miércoles, 4=Jueves, 5=Viernes, 6=Sábado
                                     const dayNames = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
                                     const dayName = dayNames[day.dayOfWeek];
                                     
@@ -3780,8 +4012,8 @@ const TemplateForm = ({ template, onClose }) => {
     name: template?.name || '',
     description: template?.description || '',
     days: template?.templateDays || Array(7).fill(null).map((_, i) => ({
-      dayOfWeek: i,
-      isWorkingDay: false,
+      dayOfWeek: i, // 0=Domingo, 1=Lunes, 2=Martes, 3=Miércoles, 4=Jueves, 5=Viernes, 6=Sábado
+      isWorkingDay: i >= 1 && i <= 5, // Lunes a Viernes por defecto
       isSplitSchedule: false,
       startTime: '09:00',
       endTime: '18:00',
@@ -3794,7 +4026,8 @@ const TemplateForm = ({ template, onClose }) => {
     }))
   });
 
-  const dayNames = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+  // Array de nombres de días: 0=Domingo, 1=Lunes, 2=Martes, 3=Miércoles, 4=Jueves, 5=Viernes, 6=Sábado
+  const dayNames = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
 
   const handleDayChange = (dayIndex, field, value) => {
     const newDays = [...formData.days];
@@ -3863,6 +4096,8 @@ const TemplateForm = ({ template, onClose }) => {
         templateDays: formData.days
       };
       
+      console.log('📤 Enviando plantilla:', { url, method: template ? 'PUT' : 'POST', payload });
+      
       const response = await authenticatedFetch(url, {
         method: template ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -3870,15 +4105,18 @@ const TemplateForm = ({ template, onClose }) => {
       });
 
       if (response.ok) {
-        alert(template ? 'Plantilla actualizada' : 'Plantilla creada');
-        onClose();
+        const result = await response.json();
+        console.log('✅ Plantilla guardada:', result);
+        alert(template ? 'Plantilla actualizada correctamente' : 'Plantilla creada correctamente');
+        onClose(); // Esto llamará a fetchTemplates() en el componente padre
       } else {
         const error = await response.json();
+        console.error('❌ Error del servidor:', error);
         alert(`Error: ${error.error || 'No se pudo guardar la plantilla'}`);
       }
     } catch (error) {
-      console.error('Error saving template:', error);
-      alert('Error al guardar la plantilla');
+      console.error('❌ Error al guardar plantilla:', error);
+      alert('Error al guardar la plantilla. Revisa la consola para más detalles.');
     }
   };
 
@@ -4485,6 +4723,164 @@ const CustomScheduleForm = ({ employeeId, year, weekNumber, onClose, onSuccess }
         </button>
       </div>
     </form>
+  );
+};
+
+// Hours Comparison Modal Component
+const HoursComparisonModal = ({ employee, onClose }) => {
+  const [comparison, setComparison] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  React.useEffect(() => {
+    const fetchComparison = async () => {
+      try {
+        const response = await authenticatedFetch(`${getApiUrl()}/records/employee/${employee.id}/hours-comparison`);
+        if (response.ok) {
+          const data = await response.json();
+          setComparison(data);
+        } else {
+          console.error('Error fetching hours comparison');
+        }
+      } catch (error) {
+        console.error('Error:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchComparison();
+  }, [employee.id]);
+
+  const renderPeriodComparison = (title, period) => {
+    if (!period) return null;
+
+    const isOvertime = period.difference.isPositive;
+    const percentageColor = period.percentage >= 100 ? 'text-green-600' : 'text-red-600';
+
+    return (
+      <div className="bg-neutral-light/30 rounded-lg p-4 border border-neutral-mid/10">
+        <h4 className="font-semibold text-neutral-dark mb-3">{title}</h4>
+        
+        <div className="space-y-3">
+          {/* Horas Estimadas */}
+          <div className="flex items-center justify-between p-3 bg-white rounded border border-neutral-mid/20">
+            <div>
+              <div className="text-xs text-brand-medium font-medium mb-1">Horas Estimadas</div>
+              <div className="text-2xl font-bold text-neutral-dark">
+                {period.estimated.hours}h {period.estimated.minutes}m
+              </div>
+            </div>
+            <div className="text-3xl">📋</div>
+          </div>
+
+          {/* Horas Reales */}
+          <div className="flex items-center justify-between p-3 bg-white rounded border border-neutral-mid/20">
+            <div>
+              <div className="text-xs text-brand-medium font-medium mb-1">Horas Trabajadas</div>
+              <div className="text-2xl font-bold text-neutral-dark">
+                {period.actual.hours}h {period.actual.minutes}m
+              </div>
+            </div>
+            <div className="text-3xl">⏱️</div>
+          </div>
+
+          {/* Diferencia */}
+          <div className={`flex items-center justify-between p-3 rounded border-2 ${
+            isOvertime ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'
+          }`}>
+            <div>
+              <div className="text-xs font-medium mb-1">
+                {isOvertime ? '✅ Horas Extra' : '⚠️ Déficit'}
+              </div>
+              <div className={`text-2xl font-bold ${isOvertime ? 'text-green-700' : 'text-red-700'}`}>
+                {isOvertime ? '+' : '-'}{period.difference.hours}h {period.difference.minutes}m
+              </div>
+            </div>
+            <div className="text-right">
+              <div className="text-xs text-neutral-dark/60 mb-1">Cumplimiento</div>
+              <div className={`text-2xl font-bold ${percentageColor}`}>
+                {period.percentage}%
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-xl shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+        {/* Header */}
+        <div className="p-6 border-b border-neutral-mid/20 sticky top-0 bg-white z-10">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-2xl font-bold text-neutral-dark font-serif">
+                📊 Análisis de Horas Trabajadas
+              </h3>
+              <p className="text-sm text-brand-medium mt-1">
+                {employee.name} - {employee.employeeCode}
+              </p>
+            </div>
+            <button
+              onClick={onClose}
+              className="text-brand-medium hover:text-neutral-dark text-2xl"
+            >
+              ×
+            </button>
+          </div>
+        </div>
+
+        {/* Content */}
+        <div className="p-6">
+          {loading ? (
+            <div className="flex justify-center items-center py-12">
+              <LoadingSpinner />
+            </div>
+          ) : comparison ? (
+            <div className="space-y-6">
+              {/* Info Box */}
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div className="flex items-start space-x-3">
+                  <div className="text-2xl">ℹ️</div>
+                  <div className="flex-1">
+                    <h4 className="font-semibold text-blue-900 mb-1">¿Cómo se calculan las horas?</h4>
+                    <ul className="text-sm text-blue-800 space-y-1">
+                      <li>• <strong>Horas Estimadas:</strong> Basadas en el horario asignado al empleado</li>
+                      <li>• <strong>Horas Trabajadas:</strong> Calculadas desde los registros de entrada/salida</li>
+                      <li>• <strong>Diferencia:</strong> Horas extra (positivo) o déficit (negativo)</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+
+              {/* Today */}
+              {renderPeriodComparison('📅 Hoy', comparison.today)}
+
+              {/* This Week */}
+              {renderPeriodComparison('📆 Esta Semana', comparison.week)}
+
+              {/* This Month */}
+              {renderPeriodComparison('📊 Este Mes', comparison.month)}
+            </div>
+          ) : (
+            <div className="text-center py-12 text-brand-medium">
+              No se pudieron cargar los datos de comparación
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="p-6 border-t border-neutral-mid/20 bg-neutral-light/30">
+          <button
+            onClick={onClose}
+            className="w-full px-4 py-2 bg-brand-light text-brand-cream rounded-lg hover:bg-brand-medium transition-colors"
+          >
+            Cerrar
+          </button>
+        </div>
+      </div>
+    </div>
   );
 };
 

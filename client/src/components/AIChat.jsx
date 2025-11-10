@@ -43,6 +43,12 @@ const AIChat = ({ userId, userRole = 'employee' }) => {
     setIsLoading(true);
 
     try {
+      // Construir historial de conversación para el backend
+      const conversationHistory = messages.map(msg => ({
+        role: msg.type === 'user' ? 'user' : 'assistant',
+        content: msg.content
+      }));
+
       const response = await fetch(`${getApiUrl()}/ai/chat`, {
         method: 'POST',
         headers: {
@@ -51,7 +57,8 @@ const AIChat = ({ userId, userRole = 'employee' }) => {
         body: JSON.stringify({
           message: inputMessage,
           userId,
-          userRole
+          userRole,
+          conversationHistory
         })
       });
 
