@@ -1365,7 +1365,8 @@ const WeeklyViewContent = () => {
   const [currentWeek, setCurrentWeek] = useState(new Date());
   const [loading, setLoading] = useState(true);
 
-  const daysOfWeek = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+  // Array de días: 0=Domingo, 1=Lunes, 2=Martes, 3=Miércoles, 4=Jueves, 5=Viernes, 6=Sábado
+  const daysOfWeek = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
   
   // Get week dates
   const getWeekDates = (date) => {
@@ -2141,14 +2142,15 @@ const ScheduleModal = ({ employee, onClose }) => {
   const [loading, setLoading] = useState(false);
   const [loadingSchedules, setLoadingSchedules] = useState(true);
 
+  // Array de días: 0=Domingo, 1=Lunes, 2=Martes, 3=Miércoles, 4=Jueves, 5=Viernes, 6=Sábado
   const daysOfWeek = [
+    { id: 0, name: 'Domingo' },
     { id: 1, name: 'Lunes' },
     { id: 2, name: 'Martes' },
     { id: 3, name: 'Miércoles' },
     { id: 4, name: 'Jueves' },
     { id: 5, name: 'Viernes' },
-    { id: 6, name: 'Sábado' },
-    { id: 0, name: 'Domingo' }
+    { id: 6, name: 'Sábado' }
   ];
 
   // Load existing schedules or initialize with defaults
@@ -3217,6 +3219,7 @@ const WeeklySchedulesContent = () => {
                                   .filter(day => day.isWorkingDay)
                                   .sort((a, b) => a.dayOfWeek - b.dayOfWeek)
                                   .map((day, idx) => {
+                                    // 0=Domingo, 1=Lunes, 2=Martes, 3=Miércoles, 4=Jueves, 5=Viernes, 6=Sábado
                                     const dayNames = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
                                     const dayName = dayNames[day.dayOfWeek];
                                     
@@ -3780,8 +3783,8 @@ const TemplateForm = ({ template, onClose }) => {
     name: template?.name || '',
     description: template?.description || '',
     days: template?.templateDays || Array(7).fill(null).map((_, i) => ({
-      dayOfWeek: i,
-      isWorkingDay: false,
+      dayOfWeek: i, // 0=Domingo, 1=Lunes, 2=Martes, 3=Miércoles, 4=Jueves, 5=Viernes, 6=Sábado
+      isWorkingDay: i >= 1 && i <= 5, // Lunes a Viernes por defecto
       isSplitSchedule: false,
       startTime: '09:00',
       endTime: '18:00',
@@ -3794,7 +3797,8 @@ const TemplateForm = ({ template, onClose }) => {
     }))
   });
 
-  const dayNames = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+  // Array de nombres de días: 0=Domingo, 1=Lunes, 2=Martes, 3=Miércoles, 4=Jueves, 5=Viernes, 6=Sábado
+  const dayNames = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
 
   const handleDayChange = (dayIndex, field, value) => {
     const newDays = [...formData.days];
