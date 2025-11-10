@@ -18,6 +18,25 @@ const handleResponse = async (response) => {
   const data = await response.json().catch(() => ({}));
   
   if (!response.ok) {
+    // Si es 401 (Unauthorized), limpiar sesión y redirigir al login
+    if (response.status === 401) {
+      console.warn('⚠️ Sesión expirada o no autorizado. Redirigiendo al login...');
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      
+      // Mostrar mensaje al usuario
+      alert('Tu sesión ha expirado. Por favor, inicia sesión nuevamente.');
+      
+      // Redirigir al login
+      window.location.href = '/login';
+      
+      throw new ApiError(
+        'Sesión expirada',
+        response.status,
+        data
+      );
+    }
+    
     throw new ApiError(
       data.error || 'An error occurred',
       response.status,

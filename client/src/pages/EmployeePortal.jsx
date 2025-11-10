@@ -33,10 +33,25 @@ const authenticatedFetch = async (url, options = {}) => {
     'Authorization': token ? `Bearer ${token}` : '',
   };
   
-  return fetch(url, {
+  const response = await fetch(url, {
     ...options,
     headers
   });
+  
+  // Si es 401 (Unauthorized), limpiar sesión y redirigir al login
+  if (response.status === 401) {
+    console.warn('⚠️ Sesión expirada o no autorizado. Redirigiendo al login...');
+    localStorage.removeItem('employeeToken');
+    localStorage.removeItem('employee');
+    
+    // Mostrar mensaje al usuario
+    alert('Tu sesión ha expirado. Por favor, inicia sesión nuevamente.');
+    
+    // Redirigir al login de empleado
+    window.location.href = '/employee-kiosk';
+  }
+  
+  return response;
 };
 import Footer from '../components/Footer';
 import AIChat from '../components/AIChat';

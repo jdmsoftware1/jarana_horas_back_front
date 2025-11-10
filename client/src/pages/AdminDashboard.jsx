@@ -39,10 +39,25 @@ const authenticatedFetch = async (url, options = {}) => {
     'Authorization': token ? `Bearer ${token}` : '',
   };
   
-  return fetch(url, {
+  const response = await fetch(url, {
     ...options,
     headers
   });
+  
+  // Si es 401 (Unauthorized), limpiar sesión y redirigir al login
+  if (response.status === 401) {
+    console.warn('⚠️ Sesión expirada o no autorizado. Redirigiendo al login...');
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    
+    // Mostrar mensaje al usuario
+    alert('Tu sesión ha expirado. Por favor, inicia sesión nuevamente.');
+    
+    // Redirigir al login
+    window.location.href = '/login';
+  }
+  
+  return response;
 };
 
 // Helper function to calculate time ago
@@ -101,7 +116,7 @@ const AdminDashboard = () => {
   ];
 
   const aiTabs = aiUtilsEnabled ? [
-    { id: 'ai-insights', label: 'IA Insights', icon: BarChart3 },
+    //{ id: 'ai-insights', label: 'IA Insights', icon: BarChart3 },
     { id: 'ai-knowledge', label: 'Gestión IA', icon: Brain },
   ] : [];
 
@@ -209,7 +224,6 @@ const AdminDashboard = () => {
         {activeTab === 'weekly-schedules' && <WeeklySchedulesContent />}
         {activeTab === 'vacations' && <VacationsContent />}
         {activeTab === 'weekly' && <WeeklyViewContent />}
-        {activeTab === 'ai-insights' && aiUtilsEnabled && <AIInsightsContent />}
         {activeTab === 'ai-knowledge' && aiUtilsEnabled && <AIKnowledgeContent />}
         {activeTab === 'settings' && <SettingsContent />}
       </div>
@@ -249,8 +263,9 @@ const DashboardContent = () => {
       // Process employees data
       if (employeesResponse.ok) {
         const employees = await employeesResponse.json();
+        const activeEmps = employees.filter(emp => emp.isActive);
         totalEmployees = employees.length;
-        activeEmployees = employees.filter(emp => emp.isActive).length;
+        activeEmployees = activeEmps.length;
       }
 
       // Process records data
@@ -281,11 +296,13 @@ const DashboardContent = () => {
       }
 
       // Update stats with real data
+      const inactiveEmployees = totalEmployees - activeEmployees;
+      
       setStats([
         { 
           label: 'Total Empleados', 
           value: totalEmployees.toString(), 
-          change: totalEmployees > 0 ? `${totalEmployees} registrados` : '', 
+          change: totalEmployees > 0 ? `${inactiveEmployees} inactivos` : '', 
           icon: Users, 
           color: 'bg-blue-500' 
         },
@@ -306,7 +323,7 @@ const DashboardContent = () => {
         { 
           label: 'Empleados Activos', 
           value: activeEmployees.toString(), 
-          change: `${activeEmployees}/${totalEmployees} activos`, 
+          change: `${activeEmployees} trabajando`, 
           icon: Shield, 
           color: 'bg-purple-500' 
         }
@@ -426,6 +443,7 @@ const EmployeesContent = () => {
   const [showHoursComparisonModal, setShowHoursComparisonModal] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [qrCodeData, setQRCodeData] = useState(null);
+  const [showInactive, setShowInactive] = useState(true); // Mostrar empleados inactivos por defecto
 
   // Cargar empleados con sus últimos registros y estadísticas de horas
   const fetchEmployees = async () => {
@@ -487,9 +505,22 @@ const EmployeesContent = () => {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-neutral-dark font-serif">
-          Gestión de Empleados
-        </h2>
+        <div>
+          <h2 className="text-2xl font-bold text-neutral-dark font-serif">
+            Gestión de Empleados
+          </h2>
+          <div className="mt-2 flex items-center space-x-2">
+            <label className="flex items-center space-x-2 text-sm text-brand-medium cursor-pointer">
+              <input
+                type="checkbox"
+                checked={showInactive}
+                onChange={(e) => setShowInactive(e.target.checked)}
+                className="rounded border-brand-medium text-brand-light focus:ring-brand-light"
+              />
+              <span>Mostrar empleados inactivos</span>
+            </label>
+          </div>
+        </div>
         <button
           onClick={() => setShowCreateForm(true)}
           className="inline-flex items-center px-4 py-2 bg-brand-light text-brand-cream rounded-lg hover:bg-brand-medium transition-colors"
@@ -594,7 +625,9 @@ const EmployeesContent = () => {
                 </td>
               </tr>
             ) : (
-              employeesWithRecords.map((employee) => (
+              employeesWithRecords
+                .filter(employee => showInactive || employee.isActive)
+                .map((employee) => (
                 <tr key={employee.id} className="hover:bg-neutral-light/50">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
@@ -704,6 +737,37 @@ const EmployeesContent = () => {
                       title="Editar Empleado"
                     >
                       Editar
+                    </button>
+                    <button 
+                      onClick={async () => {
+                        const action = employee.isActive ? 'desactivar' : 'activar';
+                        if (confirm(`¿Estás seguro de que quieres ${action} a ${employee.name}?`)) {
+                          try {
+                            const response = await authenticatedFetch(`${getApiUrl()}/employees/${employee.id}/toggle-active`, {
+                              method: 'PATCH'
+                            });
+                            
+                            if (response.ok) {
+                              alert(`✅ Empleado ${action === 'desactivar' ? 'desactivado' : 'activado'} correctamente`);
+                              fetchEmployees();
+                            } else {
+                              const error = await response.json();
+                              alert(`❌ Error: ${error.error || 'No se pudo actualizar el empleado'}`);
+                            }
+                          } catch (error) {
+                            console.error('Error actualizando empleado:', error);
+                            alert('❌ Error al actualizar el empleado');
+                          }
+                        }
+                      }}
+                      className={`px-3 py-1 text-xs rounded transition-colors ${
+                        employee.isActive 
+                          ? 'bg-red-100 text-red-700 hover:bg-red-200' 
+                          : 'bg-green-100 text-green-700 hover:bg-green-200'
+                      }`}
+                      title={employee.isActive ? 'Desactivar Empleado' : 'Activar Empleado'}
+                    >
+                      {employee.isActive ? '🚫 Desactivar' : '✅ Activar'}
                     </button>
                   </td>
                 </tr>
@@ -1450,15 +1514,15 @@ const WeeklyViewContent = () => {
   const [currentWeek, setCurrentWeek] = useState(new Date());
   const [loading, setLoading] = useState(true);
 
-  // Array de días: 0=Domingo, 1=Lunes, 2=Martes, 3=Miércoles, 4=Jueves, 5=Viernes, 6=Sábado
-  const daysOfWeek = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+  // Array de días ordenado: Lunes a Domingo
+  const daysOfWeek = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
   
-  // Get week dates
+  // Get week dates (Monday to Sunday)
   const getWeekDates = (date) => {
     const week = [];
     const startOfWeek = new Date(date);
     const day = startOfWeek.getDay();
-    const diff = startOfWeek.getDate() - day + (day === 0 ? -6 : 1); // Adjust when day is Sunday
+    const diff = startOfWeek.getDate() - day + (day === 0 ? -6 : 1); // Start on Monday
     startOfWeek.setDate(diff);
 
     for (let i = 0; i < 7; i++) {
@@ -3957,6 +4021,31 @@ const WeeklySchedulesContent = () => {
                         >
                           ✏️ Editar
                         </button>
+                        <button
+                          onClick={async () => {
+                            if (confirm(`¿Estás seguro de que quieres eliminar la plantilla "${template.name}"?`)) {
+                              try {
+                                const response = await authenticatedFetch(`${getApiUrl()}/schedule-templates/${template.id}`, {
+                                  method: 'DELETE'
+                                });
+                                
+                                if (response.ok) {
+                                  alert('✅ Plantilla eliminada correctamente');
+                                  fetchTemplates();
+                                } else {
+                                  const error = await response.json();
+                                  alert(`❌ Error: ${error.error || 'No se pudo eliminar la plantilla'}`);
+                                }
+                              } catch (error) {
+                                console.error('Error eliminando plantilla:', error);
+                                alert('❌ Error al eliminar la plantilla');
+                              }
+                            }
+                          }}
+                          className="px-3 py-1 text-sm text-red-500 hover:text-red-700"
+                        >
+                          🗑️ Eliminar
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -4008,22 +4097,38 @@ const WeeklySchedulesContent = () => {
 // Template Form Component with Split Schedule Support and Multiple Breaks
 const TemplateForm = ({ template, onClose }) => {
   const { user } = useAuth();
+  // Reordenar días para que empiecen en Lunes (1,2,3,4,5,6,0)
+  const initializeDays = () => {
+    if (template?.templateDays) {
+      // Si es edición, ordenar los días recibidos empezando por Lunes
+      const sortedDays = [...template.templateDays].sort((a, b) => {
+        const orderA = a.dayOfWeek === 0 ? 7 : a.dayOfWeek;
+        const orderB = b.dayOfWeek === 0 ? 7 : b.dayOfWeek;
+        return orderA - orderB;
+      });
+      return sortedDays;
+    } else {
+      // Si es creación, crear días empezando por Lunes
+      return [1, 2, 3, 4, 5, 6, 0].map(dayOfWeek => ({
+        dayOfWeek: dayOfWeek,
+        isWorkingDay: dayOfWeek >= 1 && dayOfWeek <= 5, // Lunes a Viernes por defecto
+        isSplitSchedule: false,
+        startTime: '09:00',
+        endTime: '18:00',
+        morningStart: '09:00',
+        morningEnd: '14:00',
+        afternoonStart: '16:00',
+        afternoonEnd: '20:00',
+        notes: '',
+        breaks: []
+      }));
+    }
+  };
+
   const [formData, setFormData] = useState({
     name: template?.name || '',
     description: template?.description || '',
-    days: template?.templateDays || Array(7).fill(null).map((_, i) => ({
-      dayOfWeek: i, // 0=Domingo, 1=Lunes, 2=Martes, 3=Miércoles, 4=Jueves, 5=Viernes, 6=Sábado
-      isWorkingDay: i >= 1 && i <= 5, // Lunes a Viernes por defecto
-      isSplitSchedule: false,
-      startTime: '09:00',
-      endTime: '18:00',
-      morningStart: '09:00',
-      morningEnd: '14:00',
-      afternoonStart: '16:00',
-      afternoonEnd: '20:00',
-      notes: '',
-      breaks: []
-    }))
+    days: initializeDays()
   });
 
   // Array de nombres de días: 0=Domingo, 1=Lunes, 2=Martes, 3=Miércoles, 4=Jueves, 5=Viernes, 6=Sábado
@@ -4090,10 +4195,28 @@ const TemplateForm = ({ template, onClose }) => {
         ? `${getApiUrl()}/schedule-templates/${template.id}`
         : `${getApiUrl()}/schedule-templates`;
       
+      // Limpiar los días para enviar solo los campos necesarios
+      const cleanedDays = formData.days.map(day => ({
+        dayOfWeek: day.dayOfWeek,
+        isWorkingDay: day.isWorkingDay,
+        isSplitSchedule: day.isSplitSchedule,
+        startTime: day.startTime || null,
+        endTime: day.endTime || null,
+        breakStartTime: day.breakStartTime || null,
+        breakEndTime: day.breakEndTime || null,
+        morningStart: day.morningStart || null,
+        morningEnd: day.morningEnd || null,
+        afternoonStart: day.afternoonStart || null,
+        afternoonEnd: day.afternoonEnd || null,
+        notes: day.notes || null,
+        breaks: day.breaks || []
+      }));
+      
       const payload = {
-        ...formData,
+        name: formData.name,
+        description: formData.description,
         createdBy: user?.id,
-        templateDays: formData.days
+        templateDays: cleanedDays
       };
       
       console.log('📤 Enviando plantilla:', { url, method: template ? 'PUT' : 'POST', payload });
