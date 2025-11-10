@@ -133,6 +133,28 @@ router.put('/:id', authMiddleware, async (req, res) => {
   }
 });
 
+// Toggle employee active status (admin only)
+router.patch('/:id/toggle-active', authMiddleware, adminMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const employee = await Employee.findByPk(id);
+    if (!employee) {
+      return res.status(404).json({ error: 'Employee not found' });
+    }
+
+    // Toggle isActive
+    await employee.update({ isActive: !employee.isActive });
+    res.json({ 
+      message: `Employee ${employee.isActive ? 'activated' : 'deactivated'} successfully`,
+      employee 
+    });
+  } catch (error) {
+    console.error('Toggle employee active error:', error);
+    res.status(500).json({ error: 'Server error toggling employee status' });
+  }
+});
+
 // Delete employee (admin only)
 router.delete('/:id', authMiddleware, adminMiddleware, async (req, res) => {
   try {
