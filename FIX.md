@@ -159,6 +159,169 @@ Si encuentras un bug, por favor incluye:
 
 ---
 
+## 7. Gestión de Plantillas Horarias
+
+### Problema
+- No se podían eliminar plantillas horarias
+- Al editar plantillas, los cambios no se guardaban correctamente
+- La semana empezaba en domingo en lugar de lunes
+- Confusión en la interfaz de usuario
+
+### Solución
+**Archivos modificados:**
+- `client/src/pages/AdminDashboard.jsx`
+
+**Cambios realizados:**
+1. **Botón de eliminar plantillas:**
+   - Añadido botón "🗑️ Eliminar" en cada plantilla
+   - Confirmación antes de eliminar
+   - Validación: no se puede eliminar si está en uso
+   - Mensaje de error claro si la plantilla está asignada
+
+2. **Corrección de edición:**
+   - Limpieza de datos antes de enviar al backend
+   - Eliminación de IDs y campos innecesarios
+   - Envío solo de campos requeridos por la API
+
+3. **Semana empieza en lunes:**
+   - Reordenación de días: [Lun, Mar, Mié, Jue, Vie, Sáb, Dom]
+   - Aplicado en formulario de plantillas
+   - Aplicado en vista semanal
+   - Consistencia en toda la aplicación
+
+**Resultado:**
+- ✅ Plantillas se pueden eliminar correctamente
+- ✅ Edición de plantillas funciona sin errores
+- ✅ Semana comienza en lunes en todas las vistas
+- ✅ Interfaz más intuitiva y consistente
+
+---
+
+## 8. Límite de Empleados Eliminado
+
+### Problema
+- Restricción artificial de 19 empleados
+- No se podían añadir más empleados después del límite
+- Error no documentado
+
+### Solución
+**Archivos modificados:**
+- Backend: Sin cambios necesarios (no había límite real)
+- Frontend: Sin cambios necesarios (era percepción del usuario)
+
+**Verificación:**
+- ✅ Se pueden crear empleados sin límite
+- ✅ Sistema probado con más de 20 empleados
+- ✅ No hay restricciones en la base de datos
+
+**Resultado:**
+- ✅ Sistema soporta cantidad ilimitada de empleados
+- ✅ Solo limitado por capacidad de la base de datos
+
+---
+
+## 9. Auto-Logout en Sesión Expirada
+
+### Problema
+- Error 401 (Unauthorized) sin manejo
+- Usuario veía error en consola sin saber qué hacer
+- Sesión expirada sin notificación clara
+- Aplicación quedaba en estado inconsistente
+
+### Solución
+**Archivos modificados:**
+- `client/src/utils/api.js`
+- `client/src/pages/AdminDashboard.jsx`
+- `client/src/pages/EmployeePortal.jsx`
+
+**Cambios realizados:**
+1. **Interceptor en api.js:**
+   ```javascript
+   if (response.status === 401) {
+     localStorage.removeItem('token');
+     localStorage.removeItem('user');
+     alert('Tu sesión ha expirado. Por favor, inicia sesión nuevamente.');
+     window.location.href = '/login';
+   }
+   ```
+
+2. **Interceptor en AdminDashboard:**
+   - Mismo manejo para `authenticatedFetch`
+   - Redirección a `/login`
+
+3. **Interceptor en EmployeePortal:**
+   - Limpieza de `employeeToken`
+   - Redirección a `/employee-kiosk`
+
+**Resultado:**
+- ✅ Detección automática de sesión expirada
+- ✅ Mensaje claro al usuario
+- ✅ Limpieza de datos de sesión
+- ✅ Redirección automática al login
+- ✅ No más errores 401 sin manejar
+
+---
+
+## 10. Activar/Desactivar Empleados
+
+### Problema
+- No se podían desactivar empleados que ya no trabajan
+- Única opción era borrar (pérdida de historial)
+- No se podía reactivar empleados
+- Contador de "Empleados Activos" incluía inactivos
+
+### Solución
+**Archivos modificados:**
+- `client/src/pages/AdminDashboard.jsx`
+- `src/routes/employees.js`
+
+**Cambios realizados:**
+1. **Nuevo endpoint backend:**
+   ```javascript
+   PATCH /api/employees/:id/toggle-active
+   ```
+   - Cambia estado `isActive`
+   - Solo accesible para admins
+   - Reversible (activar/desactivar)
+
+2. **Botón en frontend:**
+   - 🚫 Desactivar (rojo) para empleados activos
+   - ✅ Activar (verde) para empleados inactivos
+   - Confirmación antes de cambiar estado
+   - Actualización automática de la lista
+
+3. **Filtro de visualización:**
+   - Checkbox "Mostrar empleados inactivos"
+   - Oculta/muestra empleados desactivados
+   - Estado persistente durante la sesión
+
+4. **Badge de estado:**
+   - 🟢 "Activo" (verde) para activos
+   - 🔴 "Inactivo" (rojo) para desactivados
+   - Visible en tabla de empleados
+
+5. **Dashboard actualizado:**
+   - "Total Empleados": muestra todos + cantidad de inactivos
+   - "Empleados Activos": solo cuenta `isActive: true`
+   - Información clara y precisa
+
+**Resultado:**
+- ✅ Empleados se pueden desactivar sin borrar
+- ✅ Historial completo se preserva
+- ✅ Empleados se pueden reactivar
+- ✅ Filtro visual para ocultar inactivos
+- ✅ Contador de empleados activos correcto
+- ✅ Requiere permisos de admin para cambiar estado
+
+**Ventajas vs Borrar:**
+- Historial de horas preservado
+- Registros de entrada/salida conservados
+- Auditoría completa
+- Reversible si el empleado vuelve
+- Reportes históricos precisos
+
+---
+
 ## 📝 Notas
 
 - Todos los arreglos incluyen pruebas manuales antes del commit
@@ -168,4 +331,4 @@ Si encuentras un bug, por favor incluye:
 
 ---
 
-**Última actualización:** 10 de Noviembre de 2024
+**Última actualización:** 10 de Noviembre de 2025

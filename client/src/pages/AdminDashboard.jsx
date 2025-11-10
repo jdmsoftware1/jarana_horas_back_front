@@ -116,7 +116,7 @@ const AdminDashboard = () => {
   ];
 
   const aiTabs = aiUtilsEnabled ? [
-    { id: 'ai-insights', label: 'IA Insights', icon: BarChart3 },
+    //{ id: 'ai-insights', label: 'IA Insights', icon: BarChart3 },
     { id: 'ai-knowledge', label: 'Gestión IA', icon: Brain },
   ] : [];
 
@@ -224,7 +224,6 @@ const AdminDashboard = () => {
         {activeTab === 'weekly-schedules' && <WeeklySchedulesContent />}
         {activeTab === 'vacations' && <VacationsContent />}
         {activeTab === 'weekly' && <WeeklyViewContent />}
-        {activeTab === 'ai-insights' && aiUtilsEnabled && <AIInsightsContent />}
         {activeTab === 'ai-knowledge' && aiUtilsEnabled && <AIKnowledgeContent />}
         {activeTab === 'settings' && <SettingsContent />}
       </div>
