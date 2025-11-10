@@ -3867,6 +3867,8 @@ const TemplateForm = ({ template, onClose }) => {
         templateDays: formData.days
       };
       
+      console.log('📤 Enviando plantilla:', { url, method: template ? 'PUT' : 'POST', payload });
+      
       const response = await authenticatedFetch(url, {
         method: template ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -3874,15 +3876,18 @@ const TemplateForm = ({ template, onClose }) => {
       });
 
       if (response.ok) {
-        alert(template ? 'Plantilla actualizada' : 'Plantilla creada');
-        onClose();
+        const result = await response.json();
+        console.log('✅ Plantilla guardada:', result);
+        alert(template ? 'Plantilla actualizada correctamente' : 'Plantilla creada correctamente');
+        onClose(); // Esto llamará a fetchTemplates() en el componente padre
       } else {
         const error = await response.json();
+        console.error('❌ Error del servidor:', error);
         alert(`Error: ${error.error || 'No se pudo guardar la plantilla'}`);
       }
     } catch (error) {
-      console.error('Error saving template:', error);
-      alert('Error al guardar la plantilla');
+      console.error('❌ Error al guardar plantilla:', error);
+      alert('Error al guardar la plantilla. Revisa la consola para más detalles.');
     }
   };
 
