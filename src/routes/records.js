@@ -371,4 +371,92 @@ router.get('/debug/all', async (req, res) => {
   }
 });
 
+// Get hours worked statistics for an employee
+router.get('/employee/:employeeId/hours-stats', authMiddleware, async (req, res) => {
+  try {
+    const { employeeId } = req.params;
+    
+    // Verify employee exists
+    const employee = await Employee.findByPk(employeeId);
+    if (!employee) {
+      return res.status(404).json({ error: 'Employee not found' });
+    }
+    
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const startOfWeek = new Date(today);
+    startOfWeek.setDate(today.getDate() - today.getDay() + 1); // Monday
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    
+    // Helper function to calculate hours from records
+    const calculateHours = async (startDate, endDate) => {
+      const records = await Record.findAll({
+        where: {
+          employeeId,
+          timestamp: {
+            [Op.gte]: startDate,
+            [Op.lt]: endDate
+          }
+        },
+        order: [['timestamp', 'ASC']]
+      });
+      
+      let totalMinutes = 0;
+      let lastCheckin = null;
+      
+      for (const record of records) {
+        if (record.type === 'checkin') {
+          lastCheckin = record.timestamp;
+        } else if (record.type === 'checkout' && lastCheckin) {
+          const diff = new Date(record.timestamp) - new Date(lastCheckin);
+          totalMinutes += diff / (1000 * 60);
+          lastCheckin = null;
+        }
+      }
+      
+      return {
+        hours: Math.floor(totalMinutes / 60),
+        minutes: Math.round(totalMinutes % 60),
+        totalMinutes: Math.round(totalMinutes)
+      };
+    };
+    
+    // Calculate for today
+    const todayEnd = new Date(today);
+    todayEnd.setDate(today.getDate() + 1);
+    const todayStats = await calculateHours(today, todayEnd);
+    
+    // Calculate for this week
+    const weekEnd = new Date(startOfWeek);
+    weekEnd.setDate(startOfWeek.getDate() + 7);
+    const weekStats = await calculateHours(startOfWeek, weekEnd);
+    
+    // Calculate for this month
+    const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+    const monthStats = await calculateHours(startOfMonth, monthEnd);
+    
+    res.json({
+      employeeId,
+      employeeName: employee.name,
+      today: {
+        date: today.toISOString().split('T')[0],
+        ...todayStats
+      },
+      week: {
+        startDate: startOfWeek.toISOString().split('T')[0],
+        endDate: weekEnd.toISOString().split('T')[0],
+        ...weekStats
+      },
+      month: {
+        startDate: startOfMonth.toISOString().split('T')[0],
+        endDate: monthEnd.toISOString().split('T')[0],
+        ...monthStats
+      }
+    });
+  } catch (error) {
+    console.error('Error calculating hours stats:', error);
+    res.status(500).json({ error: 'Server error calculating hours statistics' });
+  }
+});
+
 export default router;

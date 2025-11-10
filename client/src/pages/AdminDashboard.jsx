@@ -425,7 +425,7 @@ const EmployeesContent = () => {
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [qrCodeData, setQRCodeData] = useState(null);
 
-  // Cargar empleados con sus últimos registros
+  // Cargar empleados con sus últimos registros y estadísticas de horas
   const fetchEmployees = async () => {
     try {
       const response = await authenticatedFetch(`${getApiUrl()}/employees`);
@@ -434,28 +434,36 @@ const EmployeesContent = () => {
         const employeesData = await response.json();
         setEmployees(employeesData);
         
-        // Obtener último registro para cada empleado
+        // Obtener último registro y estadísticas de horas para cada empleado
         const employeesWithLastRecord = await Promise.all(
           employeesData.map(async (employee) => {
             try {
+              // Obtener último registro
               const recordsResponse = await authenticatedFetch(`${getApiUrl()}/records/employee/${employee.id}?limit=1`);
+              let lastRecord = null;
               if (recordsResponse.ok) {
                 const records = await recordsResponse.json();
-                const lastRecord = records.length > 0 ? records[0] : null;
-                return {
-                  ...employee,
-                  lastRecord
-                };
+                lastRecord = records.length > 0 ? records[0] : null;
               }
+              
+              // Obtener estadísticas de horas
+              const statsResponse = await authenticatedFetch(`${getApiUrl()}/records/employee/${employee.id}/hours-stats`);
+              let hoursStats = null;
+              if (statsResponse.ok) {
+                hoursStats = await statsResponse.json();
+              }
+              
               return {
                 ...employee,
-                lastRecord: null
+                lastRecord,
+                hoursStats
               };
             } catch (error) {
-              console.error(`Error fetching records for employee ${employee.id}:`, error);
+              console.error(`Error fetching data for employee ${employee.id}:`, error);
               return {
                 ...employee,
-                lastRecord: null
+                lastRecord: null,
+                hoursStats: null
               };
             }
           })
@@ -545,6 +553,9 @@ const EmployeesContent = () => {
                 Último Fichaje
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-neutral-dark uppercase tracking-wider">
+                Horas Trabajadas
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-neutral-dark uppercase tracking-wider">
                 Acciones
               </th>
             </tr>
@@ -552,7 +563,7 @@ const EmployeesContent = () => {
           <tbody className="bg-white divide-y divide-neutral-mid/20">
             {loading ? (
               <tr>
-                <td colSpan="5" className="px-6 py-4 text-center">
+                <td colSpan="6" className="px-6 py-4 text-center">
                   <div className="flex justify-center">
                     <LoadingSpinner />
                   </div>
@@ -560,7 +571,7 @@ const EmployeesContent = () => {
               </tr>
             ) : employeesWithRecords.length === 0 ? (
               <tr>
-                <td colSpan="5" className="px-6 py-4 text-center text-brand-medium">
+                <td colSpan="6" className="px-6 py-4 text-center text-brand-medium">
                   No hay empleados registrados
                 </td>
               </tr>
@@ -616,6 +627,32 @@ const EmployeesContent = () => {
                       </div>
                     ) : (
                       <span className="text-gray-400">Sin registros</span>
+                    )}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-dark">
+                    {employee.hoursStats ? (
+                      <div className="space-y-1">
+                        <div className="flex items-center space-x-2">
+                          <span className="text-xs font-medium text-brand-medium">Hoy:</span>
+                          <span className="text-xs font-semibold text-neutral-dark">
+                            {employee.hoursStats.today.hours}h {employee.hoursStats.today.minutes}m
+                          </span>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <span className="text-xs font-medium text-brand-medium">Semana:</span>
+                          <span className="text-xs font-semibold text-neutral-dark">
+                            {employee.hoursStats.week.hours}h {employee.hoursStats.week.minutes}m
+                          </span>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <span className="text-xs font-medium text-brand-medium">Mes:</span>
+                          <span className="text-xs font-semibold text-neutral-dark">
+                            {employee.hoursStats.month.hours}h {employee.hoursStats.month.minutes}m
+                          </span>
+                        </div>
+                      </div>
+                    ) : (
+                      <span className="text-gray-400 text-xs">Sin datos</span>
                     )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
