@@ -25,7 +25,7 @@ class EnhancedAIService {
     console.log('✅ Enhanced AI Service inicializado');
   }
 
-  async chat(message, userId = null) {
+  async chat(message, userId = null, conversationHistory = []) {
     if (!this.initialized) {
       await this.initialize();
     }
@@ -42,13 +42,13 @@ class EnhancedAIService {
       const relevantDocs = await embeddingService.searchSimilarDocuments(message, 3);
       
       // 2. Obtener datos de la base de datos si es necesario
-      const dbContext = await this.getDatabaseContext(message);
+      const dbContext = await this.getDatabaseContext(message, conversationHistory);
       
       // 3. Construir contexto enriquecido
       let context = this.buildContext(relevantDocs, dbContext);
       
-      // 4. Generar respuesta con GPT
-      const response = await this.generateResponse(message, context);
+      // 4. Generar respuesta con GPT (con historial)
+      const response = await this.generateResponse(message, context, conversationHistory);
       
       return {
         response: response,
@@ -87,16 +87,41 @@ class EnhancedAIService {
     return context;
   }
 
-  async getDatabaseContext(message) {
+  async getDatabaseContext(message, conversationHistory = []) {
     const messageLower = message.toLowerCase();
     let context = '';
 
     try {
+      // Detectar si hace referencia a la conversación anterior
+      let employeeFromHistory = null;
+      if (conversationHistory.length > 0) {
+        // Buscar el último empleado mencionado en el historial
+        for (let i = conversationHistory.length - 1; i >= 0; i--) {
+          const historyMessage = conversationHistory[i];
+          if (historyMessage.role === 'user') {
+            const employees = await Employee.findAll({
+              where: { isActive: true },
+              attributes: ['id', 'name', 'employeeCode']
+            });
+            
+            for (const emp of employees) {
+              const nameParts = emp.name.toLowerCase().split(' ');
+              if (nameParts.some(part => historyMessage.content.toLowerCase().includes(part))) {
+                employeeFromHistory = emp;
+                break;
+              }
+            }
+            if (employeeFromHistory) break;
+          }
+        }
+      }
+      
       // Detectar consultas sobre horas trabajadas
       if (messageLower.includes('hora') || messageLower.includes('trabaj') || 
           messageLower.includes('extra') || messageLower.includes('déficit') ||
-          messageLower.includes('deficit') || messageLower.includes('cumplimiento')) {
-        context += await this.getHoursContext(message, messageLower);
+          messageLower.includes('deficit') || messageLower.includes('cumplimiento') ||
+          messageLower.includes('mes') || messageLower.includes('semana') || messageLower.includes('hoy')) {
+        context += await this.getHoursContext(message, messageLower, employeeFromHistory);
       }
       
       // Detectar qué tipo de información se solicita
@@ -229,7 +254,7 @@ class EnhancedAIService {
     return context;
   }
 
-  async generateResponse(message, context) {
+  async generateResponse(message, context, conversationHistory = []) {
     const systemPrompt = `Eres un asistente de IA para el sistema de gestión de empleados JARANA.
 
 Tu trabajo es ayudar a responder preguntas sobre:
@@ -242,6 +267,7 @@ Tu trabajo es ayudar a responder preguntas sobre:
 
 IMPORTANTE:
 - Usa la información del contexto proporcionado para dar respuestas precisas
+- **MANTÉN CONTEXTO**: Si el usuario pregunta "¿y este mes?" después de hablar de un empleado, asume que se refiere al mismo empleado
 - Si no tienes información suficiente, dilo claramente
 - Sé conciso y directo
 - Usa formato claro con listas cuando sea apropiado
@@ -259,12 +285,23 @@ EJEMPLOS DE CONSULTAS QUE PUEDES RESPONDER:
 Contexto disponible:
 ${context}`;
 
+    // Construir array de mensajes incluyendo historial
+    const messages = [
+      { role: 'system', content: systemPrompt }
+    ];
+
+    // Añadir historial de conversación (últimos 5 mensajes para no exceder límites)
+    if (conversationHistory && conversationHistory.length > 0) {
+      const recentHistory = conversationHistory.slice(-5);
+      messages.push(...recentHistory);
+    }
+
+    // Añadir mensaje actual
+    messages.push({ role: 'user', content: message });
+
     const completion = await this.openai.chat.completions.create({
       model: 'gpt-4o-mini',
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: message }
-      ],
+      messages: messages,
       temperature: 0.7,
       max_tokens: 1500
     });
@@ -272,7 +309,7 @@ ${context}`;
     return completion.choices[0].message.content;
   }
 
-  async getHoursContext(message, messageLower) {
+  async getHoursContext(message, messageLower, employeeFromHistory = null) {
     let context = '';
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -357,12 +394,16 @@ ${context}`;
       };
 
       // Detectar si pregunta por un empleado específico
-      let specificEmployee = null;
-      for (const emp of employees) {
-        const nameParts = emp.name.toLowerCase().split(' ');
-        if (nameParts.some(part => messageLower.includes(part))) {
-          specificEmployee = emp;
-          break;
+      let specificEmployee = employeeFromHistory; // Usar el del historial si existe
+      
+      // Si no hay empleado del historial, buscar en el mensaje actual
+      if (!specificEmployee) {
+        for (const emp of employees) {
+          const nameParts = emp.name.toLowerCase().split(' ');
+          if (nameParts.some(part => messageLower.includes(part))) {
+            specificEmployee = emp;
+            break;
+          }
         }
       }
 
