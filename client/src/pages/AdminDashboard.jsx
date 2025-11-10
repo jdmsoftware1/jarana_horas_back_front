@@ -422,6 +422,7 @@ const EmployeesContent = () => {
   const [loading, setLoading] = useState(true);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [showQRModal, setShowQRModal] = useState(false);
+  const [showHoursComparisonModal, setShowHoursComparisonModal] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [qrCodeData, setQRCodeData] = useState(null);
 
@@ -667,6 +668,16 @@ const EmployeesContent = () => {
                     >
                       <QrCode className="h-4 w-4" />
                     </button>
+                    <button 
+                      onClick={() => {
+                        setSelectedEmployee(employee);
+                        setShowHoursComparisonModal(true);
+                      }}
+                      className="px-3 py-1 text-xs bg-brand-light text-brand-cream rounded hover:bg-brand-medium transition-colors"
+                      title="Ver Análisis de Horas"
+                    >
+                      📊 Análisis
+                    </button>
                     <button className="text-blue-600 hover:text-blue-900">Editar</button>
                   </td>
                 </tr>
@@ -675,6 +686,17 @@ const EmployeesContent = () => {
           </tbody>
         </table>
       </div>
+
+      {/* Hours Comparison Modal */}
+      {showHoursComparisonModal && selectedEmployee && (
+        <HoursComparisonModal
+          employee={selectedEmployee}
+          onClose={() => {
+            setShowHoursComparisonModal(false);
+            setSelectedEmployee(null);
+          }}
+        />
+      )}
     </div>
   );
 };
@@ -4531,6 +4553,164 @@ const CustomScheduleForm = ({ employeeId, year, weekNumber, onClose, onSuccess }
         </button>
       </div>
     </form>
+  );
+};
+
+// Hours Comparison Modal Component
+const HoursComparisonModal = ({ employee, onClose }) => {
+  const [comparison, setComparison] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  React.useEffect(() => {
+    const fetchComparison = async () => {
+      try {
+        const response = await authenticatedFetch(`${getApiUrl()}/records/employee/${employee.id}/hours-comparison`);
+        if (response.ok) {
+          const data = await response.json();
+          setComparison(data);
+        } else {
+          console.error('Error fetching hours comparison');
+        }
+      } catch (error) {
+        console.error('Error:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchComparison();
+  }, [employee.id]);
+
+  const renderPeriodComparison = (title, period) => {
+    if (!period) return null;
+
+    const isOvertime = period.difference.isPositive;
+    const percentageColor = period.percentage >= 100 ? 'text-green-600' : 'text-red-600';
+
+    return (
+      <div className="bg-neutral-light/30 rounded-lg p-4 border border-neutral-mid/10">
+        <h4 className="font-semibold text-neutral-dark mb-3">{title}</h4>
+        
+        <div className="space-y-3">
+          {/* Horas Estimadas */}
+          <div className="flex items-center justify-between p-3 bg-white rounded border border-neutral-mid/20">
+            <div>
+              <div className="text-xs text-brand-medium font-medium mb-1">Horas Estimadas</div>
+              <div className="text-2xl font-bold text-neutral-dark">
+                {period.estimated.hours}h {period.estimated.minutes}m
+              </div>
+            </div>
+            <div className="text-3xl">📋</div>
+          </div>
+
+          {/* Horas Reales */}
+          <div className="flex items-center justify-between p-3 bg-white rounded border border-neutral-mid/20">
+            <div>
+              <div className="text-xs text-brand-medium font-medium mb-1">Horas Trabajadas</div>
+              <div className="text-2xl font-bold text-neutral-dark">
+                {period.actual.hours}h {period.actual.minutes}m
+              </div>
+            </div>
+            <div className="text-3xl">⏱️</div>
+          </div>
+
+          {/* Diferencia */}
+          <div className={`flex items-center justify-between p-3 rounded border-2 ${
+            isOvertime ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'
+          }`}>
+            <div>
+              <div className="text-xs font-medium mb-1">
+                {isOvertime ? '✅ Horas Extra' : '⚠️ Déficit'}
+              </div>
+              <div className={`text-2xl font-bold ${isOvertime ? 'text-green-700' : 'text-red-700'}`}>
+                {isOvertime ? '+' : '-'}{period.difference.hours}h {period.difference.minutes}m
+              </div>
+            </div>
+            <div className="text-right">
+              <div className="text-xs text-neutral-dark/60 mb-1">Cumplimiento</div>
+              <div className={`text-2xl font-bold ${percentageColor}`}>
+                {period.percentage}%
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-xl shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+        {/* Header */}
+        <div className="p-6 border-b border-neutral-mid/20 sticky top-0 bg-white z-10">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-2xl font-bold text-neutral-dark font-serif">
+                📊 Análisis de Horas Trabajadas
+              </h3>
+              <p className="text-sm text-brand-medium mt-1">
+                {employee.name} - {employee.employeeCode}
+              </p>
+            </div>
+            <button
+              onClick={onClose}
+              className="text-brand-medium hover:text-neutral-dark text-2xl"
+            >
+              ×
+            </button>
+          </div>
+        </div>
+
+        {/* Content */}
+        <div className="p-6">
+          {loading ? (
+            <div className="flex justify-center items-center py-12">
+              <LoadingSpinner />
+            </div>
+          ) : comparison ? (
+            <div className="space-y-6">
+              {/* Info Box */}
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div className="flex items-start space-x-3">
+                  <div className="text-2xl">ℹ️</div>
+                  <div className="flex-1">
+                    <h4 className="font-semibold text-blue-900 mb-1">¿Cómo se calculan las horas?</h4>
+                    <ul className="text-sm text-blue-800 space-y-1">
+                      <li>• <strong>Horas Estimadas:</strong> Basadas en el horario asignado al empleado</li>
+                      <li>• <strong>Horas Trabajadas:</strong> Calculadas desde los registros de entrada/salida</li>
+                      <li>• <strong>Diferencia:</strong> Horas extra (positivo) o déficit (negativo)</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+
+              {/* Today */}
+              {renderPeriodComparison('📅 Hoy', comparison.today)}
+
+              {/* This Week */}
+              {renderPeriodComparison('📆 Esta Semana', comparison.week)}
+
+              {/* This Month */}
+              {renderPeriodComparison('📊 Este Mes', comparison.month)}
+            </div>
+          ) : (
+            <div className="text-center py-12 text-brand-medium">
+              No se pudieron cargar los datos de comparación
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="p-6 border-t border-neutral-mid/20 bg-neutral-light/30">
+          <button
+            onClick={onClose}
+            className="w-full px-4 py-2 bg-brand-light text-brand-cream rounded-lg hover:bg-brand-medium transition-colors"
+          >
+            Cerrar
+          </button>
+        </div>
+      </div>
+    </div>
   );
 };
 

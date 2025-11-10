@@ -459,4 +459,150 @@ router.get('/employee/:employeeId/hours-stats', authMiddleware, async (req, res)
   }
 });
 
+// Get hours comparison (estimated vs actual) for an employee
+router.get('/employee/:employeeId/hours-comparison', authMiddleware, async (req, res) => {
+  try {
+    const { employeeId } = req.params;
+    const { Schedule, WeeklySchedule, ScheduleTemplate, ScheduleTemplateDay } = await import('../models/index.js');
+    
+    // Verify employee exists
+    const employee = await Employee.findByPk(employeeId);
+    if (!employee) {
+      return res.status(404).json({ error: 'Employee not found' });
+    }
+    
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const startOfWeek = new Date(today);
+    startOfWeek.setDate(today.getDate() - today.getDay() + 1); // Monday
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    
+    // Helper to calculate actual worked hours
+    const calculateActualHours = async (startDate, endDate) => {
+      const records = await Record.findAll({
+        where: {
+          employeeId,
+          timestamp: {
+            [Op.gte]: startDate,
+            [Op.lt]: endDate
+          }
+        },
+        order: [['timestamp', 'ASC']]
+      });
+      
+      let totalMinutes = 0;
+      let lastCheckin = null;
+      
+      for (const record of records) {
+        if (record.type === 'checkin') {
+          lastCheckin = record.timestamp;
+        } else if (record.type === 'checkout' && lastCheckin) {
+          const diff = new Date(record.timestamp) - new Date(lastCheckin);
+          totalMinutes += diff / (1000 * 60);
+          lastCheckin = null;
+        }
+      }
+      
+      return totalMinutes;
+    };
+    
+    // Helper to calculate estimated hours from schedule
+    const calculateEstimatedHours = async (startDate, endDate) => {
+      let totalMinutes = 0;
+      const currentDate = new Date(startDate);
+      
+      while (currentDate < endDate) {
+        const dayOfWeek = currentDate.getDay();
+        
+        // Try to get schedule from base schedules
+        const schedule = await Schedule.findOne({
+          where: { employeeId, dayOfWeek }
+        });
+        
+        if (schedule && schedule.isWorkingDay && schedule.startTime && schedule.endTime) {
+          const start = new Date(`1970-01-01T${schedule.startTime}`);
+          const end = new Date(`1970-01-01T${schedule.endTime}`);
+          let dayMinutes = (end - start) / (1000 * 60);
+          
+          // Subtract break time if exists
+          if (schedule.breakStartTime && schedule.breakEndTime) {
+            const breakStart = new Date(`1970-01-01T${schedule.breakStartTime}`);
+            const breakEnd = new Date(`1970-01-01T${schedule.breakEndTime}`);
+            dayMinutes -= (breakEnd - breakStart) / (1000 * 60);
+          }
+          
+          totalMinutes += dayMinutes;
+        }
+        
+        currentDate.setDate(currentDate.getDate() + 1);
+      }
+      
+      return totalMinutes;
+    };
+    
+    // Calculate for today
+    const todayEnd = new Date(today);
+    todayEnd.setDate(today.getDate() + 1);
+    const todayActual = await calculateActualHours(today, todayEnd);
+    const todayEstimated = await calculateEstimatedHours(today, todayEnd);
+    
+    // Calculate for this week
+    const weekEnd = new Date(startOfWeek);
+    weekEnd.setDate(startOfWeek.getDate() + 7);
+    const weekActual = await calculateActualHours(startOfWeek, weekEnd);
+    const weekEstimated = await calculateEstimatedHours(startOfWeek, weekEnd);
+    
+    // Calculate for this month
+    const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+    const monthActual = await calculateActualHours(startOfMonth, monthEnd);
+    const monthEstimated = await calculateEstimatedHours(startOfMonth, monthEnd);
+    
+    // Format results
+    const formatComparison = (actual, estimated) => {
+      const difference = actual - estimated;
+      return {
+        actual: {
+          hours: Math.floor(actual / 60),
+          minutes: Math.round(actual % 60),
+          totalMinutes: Math.round(actual)
+        },
+        estimated: {
+          hours: Math.floor(estimated / 60),
+          minutes: Math.round(estimated % 60),
+          totalMinutes: Math.round(estimated)
+        },
+        difference: {
+          hours: Math.floor(Math.abs(difference) / 60),
+          minutes: Math.round(Math.abs(difference) % 60),
+          totalMinutes: Math.round(difference),
+          isPositive: difference >= 0
+        },
+        percentage: estimated > 0 ? Math.round((actual / estimated) * 100) : 0
+      };
+    };
+    
+    res.json({
+      employeeId,
+      employeeName: employee.name,
+      today: {
+        date: today.toISOString().split('T')[0],
+        ...formatComparison(todayActual, todayEstimated)
+      },
+      week: {
+        startDate: startOfWeek.toISOString().split('T')[0],
+        endDate: weekEnd.toISOString().split('T')[0],
+        ...formatComparison(weekActual, weekEstimated)
+      },
+      month: {
+        startDate: startOfMonth.toISOString().split('T')[0],
+        endDate: monthEnd.toISOString().split('T')[0],
+        ...formatComparison(monthActual, monthEstimated)
+      }
+    });
+  } catch (error) {
+    console.error('Error calculating hours comparison:', error);
+    res.status(500).json({ error: 'Server error calculating hours comparison' });
+  }
+});
+
 export default router;
