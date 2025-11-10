@@ -421,6 +421,7 @@ const EmployeesContent = () => {
   const [employeesWithRecords, setEmployeesWithRecords] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [showEditForm, setShowEditForm] = useState(false);
   const [showQRModal, setShowQRModal] = useState(false);
   const [showHoursComparisonModal, setShowHoursComparisonModal] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState(null);
@@ -504,6 +505,22 @@ const EmployeesContent = () => {
           onClose={() => setShowCreateForm(false)}
           onSuccess={() => {
             setShowCreateForm(false);
+            fetchEmployees();
+          }}
+        />
+      )}
+
+      {/* Edit Employee Modal */}
+      {showEditForm && selectedEmployee && (
+        <EditEmployeeModal 
+          employee={selectedEmployee}
+          onClose={() => {
+            setShowEditForm(false);
+            setSelectedEmployee(null);
+          }}
+          onSuccess={() => {
+            setShowEditForm(false);
+            setSelectedEmployee(null);
             fetchEmployees();
           }}
         />
@@ -678,7 +695,16 @@ const EmployeesContent = () => {
                     >
                       📊 Análisis
                     </button>
-                    <button className="text-blue-600 hover:text-blue-900">Editar</button>
+                    <button 
+                      onClick={() => {
+                        setSelectedEmployee(employee);
+                        setShowEditForm(true);
+                      }}
+                      className="text-blue-600 hover:text-blue-900"
+                      title="Editar Empleado"
+                    >
+                      Editar
+                    </button>
                   </td>
                 </tr>
               ))
@@ -2140,6 +2166,150 @@ const CreateEmployeeModal = ({ onClose, onSuccess }) => {
               className="px-4 py-2 bg-brand-light text-brand-cream rounded-lg hover:bg-brand-medium disabled:opacity-50"
             >
               {loading ? 'Creando...' : 'Crear Empleado'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+// Edit Employee Modal
+const EditEmployeeModal = ({ employee, onClose, onSuccess }) => {
+  const [formData, setFormData] = useState({
+    name: employee.name || '',
+    email: employee.email || '',
+    isActive: employee.isActive !== undefined ? employee.isActive : true,
+    pin: '' // PIN vacío por defecto, solo se cambia si el usuario lo rellena
+  });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+
+    try {
+      // Solo enviar PIN si se ha rellenado
+      const updateData = {
+        name: formData.name,
+        email: formData.email,
+        isActive: formData.isActive
+      };
+      
+      if (formData.pin && formData.pin.length >= 4) {
+        updateData.pin = formData.pin;
+      }
+
+      const response = await authenticatedFetch(`${getApiUrl()}/employees/${employee.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(updateData)
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Error actualizando empleado');
+      }
+
+      onSuccess();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-xl p-6 w-full max-w-md mx-4">
+        <h3 className="text-lg font-semibold text-neutral-dark mb-4">
+          Editar Empleado
+        </h3>
+
+        {error && (
+          <div className="mb-4 p-3 bg-red-100 border border-red-300 text-red-700 rounded">
+            {error}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-neutral-dark mb-2">
+              Nombre completo
+            </label>
+            <input
+              type="text"
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              className="w-full px-3 py-2 border border-neutral-mid/30 rounded-lg focus:border-brand-light focus:ring-0 focus:outline-none"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-neutral-dark mb-2">
+              Email
+            </label>
+            <input
+              type="email"
+              value={formData.email}
+              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              className="w-full px-3 py-2 border border-neutral-mid/30 rounded-lg focus:border-brand-light focus:ring-0 focus:outline-none"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-neutral-dark mb-2">
+              Nuevo PIN (opcional, 4-8 dígitos)
+            </label>
+            <input
+              type="password"
+              value={formData.pin}
+              onChange={(e) => setFormData({ ...formData, pin: e.target.value })}
+              className="w-full px-3 py-2 border border-neutral-mid/30 rounded-lg focus:border-brand-light focus:ring-0 focus:outline-none"
+              minLength="4"
+              maxLength="8"
+              placeholder="Dejar vacío para no cambiar"
+            />
+            <p className="text-xs text-brand-medium mt-1">
+              Solo rellena este campo si quieres cambiar el PIN
+            </p>
+          </div>
+
+          <div>
+            <label className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                checked={formData.isActive}
+                onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
+                className="rounded border-neutral-mid/30"
+              />
+              <span className="text-sm font-medium text-neutral-dark">
+                Empleado Activo
+              </span>
+            </label>
+          </div>
+
+          <div className="flex justify-end space-x-3 pt-4">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 text-brand-medium hover:text-neutral-dark"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="px-4 py-2 bg-brand-light text-brand-cream rounded-lg hover:bg-brand-medium disabled:opacity-50"
+            >
+              {loading ? 'Guardando...' : 'Guardar Cambios'}
             </button>
           </div>
         </form>

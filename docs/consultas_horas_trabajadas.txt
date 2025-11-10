@@ -1,0 +1,200 @@
+# CONSULTAS DE HORAS TRABAJADAS - SISTEMA JARANA
+
+## ¿Qué son las horas trabajadas?
+
+El sistema JARANA calcula automáticamente las horas trabajadas de cada empleado basándose en sus registros de entrada (checkin) y salida (checkout).
+
+## Tipos de horas
+
+### Horas Reales
+Son las horas que el empleado realmente trabajó, calculadas desde sus fichajes:
+- Se suman todos los períodos entre checkin y checkout
+- Solo se cuentan pares completos (entrada + salida)
+- Se muestran en formato: Xh Ym (ejemplo: 8h 30m)
+
+### Horas Estimadas
+Son las horas que el empleado debería trabajar según su horario asignado:
+- Se calculan desde el horario base del empleado
+- Se restan los descansos configurados
+- Representan la jornada laboral esperada
+
+### Diferencia (Horas Extra o Déficit)
+Es la comparación entre horas reales y estimadas:
+- **Horas Extra**: Cuando trabajó MÁS de lo esperado (diferencia positiva)
+- **Déficit**: Cuando trabajó MENOS de lo esperado (diferencia negativa)
+- Se muestra con + o - según el caso
+
+## Períodos de consulta
+
+### Hoy
+- Muestra las horas del día actual
+- Se actualiza en tiempo real
+- Útil para control diario
+
+### Esta Semana
+- Período de Lunes a Domingo
+- Suma todas las horas de la semana en curso
+- Ideal para seguimiento semanal
+
+### Este Mes
+- Desde el día 1 del mes hasta hoy
+- Acumulado mensual
+- Útil para nóminas y reportes
+
+## Consultas que puedes hacer
+
+### Consultas por empleado específico
+- "¿Cuántas horas trabajó Juan hoy?"
+- "¿Cuántas horas lleva María esta semana?"
+- "Horas trabajadas de Pedro este mes"
+- "¿Juan tiene horas extra?"
+
+### Consultas generales
+- "¿Quién hizo más horas esta semana?"
+- "Muéstrame el ranking de horas trabajadas"
+- "¿Qué empleados tienen horas extra?"
+- "¿Hay empleados con déficit de horas?"
+- "Resumen de horas trabajadas del equipo"
+
+### Consultas de análisis
+- "¿Quién tiene más horas extra este mes?"
+- "Empleados con déficit de horas"
+- "Comparativa de horas trabajadas"
+- "Estadísticas de cumplimiento de horario"
+
+## Cómo se calculan
+
+### Paso 1: Obtener registros
+El sistema busca todos los registros de checkin y checkout del empleado en el período solicitado.
+
+### Paso 2: Emparejar entradas y salidas
+- Se empareja cada checkin con su checkout correspondiente
+- Si hay un checkin sin checkout, no se cuenta (jornada incompleta)
+
+### Paso 3: Sumar tiempos
+- Se calcula la diferencia entre cada par checkin-checkout
+- Se suman todas las diferencias
+- Resultado: Total de minutos trabajados
+
+### Paso 4: Convertir a horas y minutos
+- Se divide entre 60 para obtener horas
+- El resto son los minutos
+- Formato final: Xh Ym
+
+### Paso 5: Comparar con horario estimado
+- Se obtiene el horario asignado al empleado
+- Se calculan las horas que debería trabajar
+- Se compara con las horas reales
+- Se muestra la diferencia
+
+## Ejemplos de respuestas
+
+### Ejemplo 1: Consulta individual
+Pregunta: "¿Cuántas horas trabajó Juan hoy?"
+
+Respuesta:
+```
+HORAS TRABAJADAS: Juan Pérez
+
+HOY (10/11/2024):
+- Horas trabajadas: 8h 30m
+- Horas estimadas: 8h 0m
+- Horas extra: +0h 30m ✅
+```
+
+### Ejemplo 2: Ranking
+Pregunta: "¿Quién hizo más horas esta semana?"
+
+Respuesta:
+```
+RANKING DE HORAS TRABAJADAS (ESTA SEMANA):
+
+1. Juan Pérez: 42h 15m
+2. María García: 41h 30m
+3. Pedro López: 40h 0m
+4. Ana Martínez: 38h 45m
+```
+
+### Ejemplo 3: Horas extra
+Pregunta: "¿Qué empleados tienen horas extra este mes?"
+
+Respuesta:
+```
+EMPLEADOS CON HORAS EXTRA (ESTE MES):
+
+- Juan Pérez: +5h 30m ✅
+- María García: +3h 15m ✅
+- Pedro López: +2h 0m ✅
+```
+
+### Ejemplo 4: Déficit
+Pregunta: "¿Hay empleados con déficit de horas?"
+
+Respuesta:
+```
+EMPLEADOS CON DÉFICIT DE HORAS (ESTA SEMANA):
+
+- Ana Martínez: -2h 30m ⚠️
+- Carlos Ruiz: -1h 15m ⚠️
+```
+
+## Dónde ver las horas en el dashboard
+
+### Tabla de empleados
+En la pestaña "Empleados" del Dashboard de Administrador, hay una columna "Horas Trabajadas" que muestra:
+- Hoy: Xh Ym
+- Semana: Xh Ym
+- Mes: Xh Ym
+
+### Modal de análisis
+Haciendo click en el botón "📊 Análisis" de cada empleado, se abre un modal detallado con:
+- Horas estimadas vs reales
+- Diferencia (extra o déficit)
+- Porcentaje de cumplimiento
+- Desglose por día/semana/mes
+
+## Casos especiales
+
+### Empleado sin horario asignado
+Si un empleado no tiene horario configurado:
+- Se muestran las horas reales trabajadas
+- No se pueden calcular horas estimadas
+- No hay comparación de extra/déficit
+
+### Jornadas incompletas
+Si hay un checkin sin checkout:
+- Esa jornada no se cuenta en el total
+- Se considera incompleta
+- No afecta al cálculo de otras jornadas
+
+### Días festivos o vacaciones
+Los días festivos o de vacaciones:
+- No se cuentan en las horas estimadas
+- Si el empleado fichó, se cuentan las horas reales
+- Pueden generar horas extra si trabajó en día libre
+
+## Beneficios del sistema
+
+1. **Control automático**: No necesitas calcular manualmente
+2. **Tiempo real**: Información siempre actualizada
+3. **Precisión**: Cálculos exactos al minuto
+4. **Transparencia**: Empleados y managers ven la misma información
+5. **Facilita nóminas**: Datos listos para procesar pagos
+6. **Detecta anomalías**: Identifica rápidamente excesos o déficits
+
+## Preguntas frecuentes
+
+### ¿Se cuentan los descansos?
+No, los descansos configurados en el horario se restan automáticamente de las horas estimadas.
+
+### ¿Qué pasa si olvido fichar la salida?
+Esa jornada no se contará hasta que se registre la salida. Puedes añadir el registro manualmente.
+
+### ¿Puedo ver las horas de otros empleados?
+Solo si eres administrador o manager. Los empleados solo ven sus propias horas.
+
+### ¿Con qué frecuencia se actualizan?
+En tiempo real. Cada vez que hay un nuevo fichaje, se recalculan automáticamente.
+
+### ¿Se pueden exportar los datos?
+Actualmente se muestran en el dashboard. La exportación a Excel/PDF está en desarrollo.

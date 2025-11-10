@@ -92,6 +92,13 @@ class EnhancedAIService {
     let context = '';
 
     try {
+      // Detectar consultas sobre horas trabajadas
+      if (messageLower.includes('hora') || messageLower.includes('trabaj') || 
+          messageLower.includes('extra') || messageLower.includes('déficit') ||
+          messageLower.includes('deficit') || messageLower.includes('cumplimiento')) {
+        context += await this.getHoursContext(message, messageLower);
+      }
+      
       // Detectar qué tipo de información se solicita
       if (messageLower.includes('empleado') || messageLower.includes('trabajador')) {
         const employees = await Employee.findAll({
@@ -231,6 +238,7 @@ Tu trabajo es ayudar a responder preguntas sobre:
 - Horarios y plantillas
 - Vacaciones y ausencias
 - Estadísticas y reportes
+- **Horas trabajadas** (reales vs estimadas, horas extra, déficits)
 
 IMPORTANTE:
 - Usa la información del contexto proporcionado para dar respuestas precisas
@@ -238,6 +246,15 @@ IMPORTANTE:
 - Sé conciso y directo
 - Usa formato claro con listas cuando sea apropiado
 - Responde siempre en español
+- Para consultas de horas, presenta la información de forma clara y estructurada
+- Usa emojis cuando sea apropiado: ✅ (horas extra), ⚠️ (déficit), 📊 (estadísticas)
+
+EJEMPLOS DE CONSULTAS QUE PUEDES RESPONDER:
+- "¿Cuántas horas trabajó Juan hoy?"
+- "¿Quién hizo más horas esta semana?"
+- "¿Qué empleados tienen horas extra este mes?"
+- "¿Hay empleados con déficit de horas?"
+- "Muéstrame el ranking de horas trabajadas"
 
 Contexto disponible:
 ${context}`;
@@ -249,10 +266,240 @@ ${context}`;
         { role: 'user', content: message }
       ],
       temperature: 0.7,
-      max_tokens: 1000
+      max_tokens: 1500
     });
 
     return completion.choices[0].message.content;
+  }
+
+  async getHoursContext(message, messageLower) {
+    let context = '';
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const startOfWeek = new Date(today);
+    startOfWeek.setDate(today.getDate() - today.getDay() + 1); // Monday
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    try {
+      // Obtener todos los empleados activos
+      const employees = await Employee.findAll({
+        where: { isActive: true },
+        attributes: ['id', 'name', 'employeeCode']
+      });
+
+      // Función helper para calcular horas trabajadas
+      const calculateHours = async (employeeId, startDate, endDate) => {
+        const records = await Record.findAll({
+          where: {
+            employeeId,
+            timestamp: {
+              [Op.gte]: startDate,
+              [Op.lt]: endDate
+            }
+          },
+          order: [['timestamp', 'ASC']]
+        });
+
+        let totalMinutes = 0;
+        let lastCheckin = null;
+
+        for (const record of records) {
+          if (record.type === 'checkin') {
+            lastCheckin = record.timestamp;
+          } else if (record.type === 'checkout' && lastCheckin) {
+            const diff = new Date(record.timestamp) - new Date(lastCheckin);
+            totalMinutes += diff / (1000 * 60);
+            lastCheckin = null;
+          }
+        }
+
+        return {
+          hours: Math.floor(totalMinutes / 60),
+          minutes: Math.round(totalMinutes % 60),
+          totalMinutes: Math.round(totalMinutes)
+        };
+      };
+
+      // Función para calcular horas estimadas
+      const calculateEstimatedHours = async (employeeId, startDate, endDate) => {
+        let totalMinutes = 0;
+        const currentDate = new Date(startDate);
+
+        while (currentDate < endDate) {
+          const dayOfWeek = currentDate.getDay();
+          
+          const schedule = await Schedule.findOne({
+            where: { employeeId, dayOfWeek }
+          });
+
+          if (schedule && schedule.isWorkingDay && schedule.startTime && schedule.endTime) {
+            const start = new Date(`1970-01-01T${schedule.startTime}`);
+            const end = new Date(`1970-01-01T${schedule.endTime}`);
+            let dayMinutes = (end - start) / (1000 * 60);
+
+            if (schedule.breakStartTime && schedule.breakEndTime) {
+              const breakStart = new Date(`1970-01-01T${schedule.breakStartTime}`);
+              const breakEnd = new Date(`1970-01-01T${schedule.breakEndTime}`);
+              dayMinutes -= (breakEnd - breakStart) / (1000 * 60);
+            }
+
+            totalMinutes += dayMinutes;
+          }
+
+          currentDate.setDate(currentDate.getDate() + 1);
+        }
+
+        return {
+          hours: Math.floor(totalMinutes / 60),
+          minutes: Math.round(totalMinutes % 60),
+          totalMinutes: Math.round(totalMinutes)
+        };
+      };
+
+      // Detectar si pregunta por un empleado específico
+      let specificEmployee = null;
+      for (const emp of employees) {
+        const nameParts = emp.name.toLowerCase().split(' ');
+        if (nameParts.some(part => messageLower.includes(part))) {
+          specificEmployee = emp;
+          break;
+        }
+      }
+
+      // Detectar período (hoy, semana, mes)
+      const isToday = messageLower.includes('hoy') || messageLower.includes('día');
+      const isWeek = messageLower.includes('semana');
+      const isMonth = messageLower.includes('mes');
+
+      if (specificEmployee) {
+        // Consulta sobre un empleado específico
+        context += `=== HORAS TRABAJADAS: ${specificEmployee.name} ===\n\n`;
+
+        if (isToday || (!isWeek && !isMonth)) {
+          const todayEnd = new Date(today);
+          todayEnd.setDate(today.getDate() + 1);
+          const actual = await calculateHours(specificEmployee.id, today, todayEnd);
+          const estimated = await calculateEstimatedHours(specificEmployee.id, today, todayEnd);
+          
+          context += `HOY (${today.toLocaleDateString('es-ES')}):\n`;
+          context += `- Horas trabajadas: ${actual.hours}h ${actual.minutes}m\n`;
+          context += `- Horas estimadas: ${estimated.hours}h ${estimated.minutes}m\n`;
+          const diff = actual.totalMinutes - estimated.totalMinutes;
+          if (diff > 0) {
+            context += `- Horas extra: +${Math.floor(diff / 60)}h ${diff % 60}m\n`;
+          } else if (diff < 0) {
+            context += `- Déficit: -${Math.floor(Math.abs(diff) / 60)}h ${Math.abs(diff) % 60}m\n`;
+          }
+          context += '\n';
+        }
+
+        if (isWeek) {
+          const weekEnd = new Date(startOfWeek);
+          weekEnd.setDate(startOfWeek.getDate() + 7);
+          const actual = await calculateHours(specificEmployee.id, startOfWeek, weekEnd);
+          const estimated = await calculateEstimatedHours(specificEmployee.id, startOfWeek, weekEnd);
+          
+          context += `ESTA SEMANA:\n`;
+          context += `- Horas trabajadas: ${actual.hours}h ${actual.minutes}m\n`;
+          context += `- Horas estimadas: ${estimated.hours}h ${estimated.minutes}m\n`;
+          const diff = actual.totalMinutes - estimated.totalMinutes;
+          if (diff > 0) {
+            context += `- Horas extra: +${Math.floor(diff / 60)}h ${diff % 60}m\n`;
+          } else if (diff < 0) {
+            context += `- Déficit: -${Math.floor(Math.abs(diff) / 60)}h ${Math.abs(diff) % 60}m\n`;
+          }
+          context += '\n';
+        }
+
+        if (isMonth) {
+          const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+          const actual = await calculateHours(specificEmployee.id, startOfMonth, monthEnd);
+          const estimated = await calculateEstimatedHours(specificEmployee.id, startOfMonth, monthEnd);
+          
+          context += `ESTE MES:\n`;
+          context += `- Horas trabajadas: ${actual.hours}h ${actual.minutes}m\n`;
+          context += `- Horas estimadas: ${estimated.hours}h ${estimated.minutes}m\n`;
+          const diff = actual.totalMinutes - estimated.totalMinutes;
+          if (diff > 0) {
+            context += `- Horas extra: +${Math.floor(diff / 60)}h ${diff % 60}m\n`;
+          } else if (diff < 0) {
+            context += `- Déficit: -${Math.floor(Math.abs(diff) / 60)}h ${Math.abs(diff) % 60}m\n`;
+          }
+          context += '\n';
+        }
+      } else {
+        // Consulta general sobre todos los empleados
+        context += `=== RESUMEN DE HORAS TRABAJADAS ===\n\n`;
+
+        const period = isMonth ? 'mes' : isWeek ? 'semana' : 'hoy';
+        const startDate = isMonth ? startOfMonth : isWeek ? startOfWeek : today;
+        const endDate = isMonth ? new Date(now.getFullYear(), now.getMonth() + 1, 1) :
+                       isWeek ? new Date(startOfWeek.getTime() + 7 * 24 * 60 * 60 * 1000) :
+                       new Date(today.getTime() + 24 * 60 * 60 * 1000);
+
+        context += `Período: ${period.toUpperCase()}\n\n`;
+
+        const employeeStats = [];
+        for (const emp of employees.slice(0, 10)) { // Limitar a 10 empleados
+          const actual = await calculateHours(emp.id, startDate, endDate);
+          const estimated = await calculateEstimatedHours(emp.id, startDate, endDate);
+          const diff = actual.totalMinutes - estimated.totalMinutes;
+          
+          employeeStats.push({
+            name: emp.name,
+            actual: actual.totalMinutes,
+            estimated: estimated.totalMinutes,
+            diff: diff,
+            actualFormatted: `${actual.hours}h ${actual.minutes}m`,
+            diffFormatted: diff >= 0 ? `+${Math.floor(diff / 60)}h ${diff % 60}m` : `-${Math.floor(Math.abs(diff) / 60)}h ${Math.abs(diff) % 60}m`
+          });
+        }
+
+        // Ordenar por horas trabajadas si se pregunta por ranking
+        if (messageLower.includes('más') || messageLower.includes('ranking') || messageLower.includes('quién')) {
+          employeeStats.sort((a, b) => b.actual - a.actual);
+          context += `RANKING DE HORAS TRABAJADAS:\n`;
+          employeeStats.forEach((stat, i) => {
+            context += `${i + 1}. ${stat.name}: ${stat.actualFormatted}\n`;
+          });
+        } else if (messageLower.includes('extra')) {
+          // Mostrar solo los que tienen horas extra
+          const withOvertime = employeeStats.filter(s => s.diff > 0).sort((a, b) => b.diff - a.diff);
+          context += `EMPLEADOS CON HORAS EXTRA:\n`;
+          if (withOvertime.length > 0) {
+            withOvertime.forEach(stat => {
+              context += `- ${stat.name}: ${stat.diffFormatted}\n`;
+            });
+          } else {
+            context += `No hay empleados con horas extra en este período.\n`;
+          }
+        } else if (messageLower.includes('déficit') || messageLower.includes('deficit')) {
+          // Mostrar solo los que tienen déficit
+          const withDeficit = employeeStats.filter(s => s.diff < 0).sort((a, b) => a.diff - b.diff);
+          context += `EMPLEADOS CON DÉFICIT DE HORAS:\n`;
+          if (withDeficit.length > 0) {
+            withDeficit.forEach(stat => {
+              context += `- ${stat.name}: ${stat.diffFormatted}\n`;
+            });
+          } else {
+            context += `No hay empleados con déficit de horas en este período.\n`;
+          }
+        } else {
+          // Mostrar resumen general
+          context += `RESUMEN GENERAL:\n`;
+          employeeStats.forEach(stat => {
+            context += `- ${stat.name}: ${stat.actualFormatted} (${stat.diff >= 0 ? 'Extra' : 'Déficit'}: ${stat.diffFormatted})\n`;
+          });
+        }
+        context += '\n';
+      }
+
+    } catch (error) {
+      console.error('Error obteniendo contexto de horas:', error);
+      context += 'Error al calcular horas trabajadas.\n';
+    }
+
+    return context;
   }
 
   async executeSQL(query) {
