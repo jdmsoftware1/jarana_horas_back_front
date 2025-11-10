@@ -116,6 +116,13 @@ class EnhancedAIService {
         }
       }
       
+      // Detectar consultas sobre horarios asignados
+      if (messageLower.includes('horario') || messageLower.includes('turno') || 
+          messageLower.includes('cuándo trabaja') || messageLower.includes('cuando trabaja') ||
+          messageLower.includes('qué días') || messageLower.includes('que dias')) {
+        context += await this.getScheduleContext(message, messageLower, employeeFromHistory);
+      }
+      
       // Detectar consultas sobre horas trabajadas
       if (messageLower.includes('hora') || messageLower.includes('trabaj') || 
           messageLower.includes('extra') || messageLower.includes('déficit') ||
@@ -260,7 +267,8 @@ class EnhancedAIService {
 Tu trabajo es ayudar a responder preguntas sobre:
 - Empleados y su información
 - Registros de entrada/salida
-- Horarios y plantillas
+- **Horarios asignados** (qué días trabaja cada empleado, horarios de entrada/salida)
+- Plantillas de horario
 - Vacaciones y ausencias
 - Estadísticas y reportes
 - **Horas trabajadas** (reales vs estimadas, horas extra, déficits)
@@ -276,6 +284,12 @@ IMPORTANTE:
 - Usa emojis cuando sea apropiado: ✅ (horas extra), ⚠️ (déficit), 📊 (estadísticas)
 
 EJEMPLOS DE CONSULTAS QUE PUEDES RESPONDER:
+- "¿Qué horario tiene David esta semana?"
+- "¿Cuándo trabaja María?"
+- "¿Qué días libra Juan?"
+- "¿Quién trabaja 40 horas a la semana?"
+- "¿Quién tiene turno de mañana?"
+- "¿Quién tiene turno partido?"
 - "¿Cuántas horas trabajó Juan hoy?"
 - "¿Quién hizo más horas esta semana?"
 - "¿Qué empleados tienen horas extra este mes?"
@@ -541,6 +555,273 @@ ${context}`;
     }
 
     return context;
+  }
+
+  async getScheduleContext(message, messageLower, employeeFromHistory = null) {
+    let context = '';
+
+    try {
+      // Obtener todos los empleados activos
+      const employees = await Employee.findAll({
+        where: { isActive: true },
+        attributes: ['id', 'name', 'employeeCode']
+      });
+
+      // Detectar si pregunta por un empleado específico
+      let specificEmployee = employeeFromHistory;
+      
+      if (!specificEmployee) {
+        for (const emp of employees) {
+          const nameParts = emp.name.toLowerCase().split(' ');
+          if (nameParts.some(part => messageLower.includes(part))) {
+            specificEmployee = emp;
+            break;
+          }
+        }
+      }
+
+      const daysOfWeek = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+
+      if (specificEmployee) {
+        // Consulta sobre un empleado específico
+        context += `=== HORARIO ASIGNADO: ${specificEmployee.name} ===\n\n`;
+
+        // Obtener horario base del empleado
+        const schedules = await Schedule.findAll({
+          where: { employeeId: specificEmployee.id },
+          order: [['dayOfWeek', 'ASC']]
+        });
+
+        if (schedules.length > 0) {
+          context += `HORARIO SEMANAL:\n`;
+          
+          schedules.forEach(schedule => {
+            const dayName = daysOfWeek[schedule.dayOfWeek];
+            
+            if (schedule.isWorkingDay) {
+              context += `\n${dayName}:\n`;
+              context += `  - Entrada: ${schedule.startTime}\n`;
+              context += `  - Salida: ${schedule.endTime}\n`;
+              
+              if (schedule.breakStartTime && schedule.breakEndTime) {
+                context += `  - Descanso: ${schedule.breakStartTime} - ${schedule.breakEndTime}\n`;
+              }
+              
+              // Calcular horas del día
+              const start = new Date(`1970-01-01T${schedule.startTime}`);
+              const end = new Date(`1970-01-01T${schedule.endTime}`);
+              let dayMinutes = (end - start) / (1000 * 60);
+              
+              if (schedule.breakStartTime && schedule.breakEndTime) {
+                const breakStart = new Date(`1970-01-01T${schedule.breakStartTime}`);
+                const breakEnd = new Date(`1970-01-01T${schedule.breakEndTime}`);
+                dayMinutes -= (breakEnd - breakStart) / (1000 * 60);
+              }
+              
+              const hours = Math.floor(dayMinutes / 60);
+              const minutes = Math.round(dayMinutes % 60);
+              context += `  - Total: ${hours}h ${minutes}m\n`;
+            } else {
+              context += `\n${dayName}: DÍA LIBRE\n`;
+            }
+          });
+
+          // Calcular total semanal
+          let totalWeekMinutes = 0;
+          schedules.forEach(schedule => {
+            if (schedule.isWorkingDay && schedule.startTime && schedule.endTime) {
+              const start = new Date(`1970-01-01T${schedule.startTime}`);
+              const end = new Date(`1970-01-01T${schedule.endTime}`);
+              let dayMinutes = (end - start) / (1000 * 60);
+              
+              if (schedule.breakStartTime && schedule.breakEndTime) {
+                const breakStart = new Date(`1970-01-01T${schedule.breakStartTime}`);
+                const breakEnd = new Date(`1970-01-01T${schedule.breakEndTime}`);
+                dayMinutes -= (breakEnd - breakStart) / (1000 * 60);
+              }
+              
+              totalWeekMinutes += dayMinutes;
+            }
+          });
+
+          const totalHours = Math.floor(totalWeekMinutes / 60);
+          const totalMinutes = Math.round(totalWeekMinutes % 60);
+          context += `\nTOTAL SEMANAL: ${totalHours}h ${totalMinutes}m\n`;
+        } else {
+          context += `${specificEmployee.name} no tiene horario asignado.\n`;
+        }
+
+        // Verificar si tiene plantilla asignada
+        const { WeeklySchedule, ScheduleTemplate } = await import('../models/index.js');
+        const now = new Date();
+        const currentYear = now.getFullYear();
+        const currentWeek = this.getWeekNumber(now);
+
+        const weeklySchedule = await WeeklySchedule.findOne({
+          where: {
+            employeeId: specificEmployee.id,
+            year: currentYear,
+            weekNumber: currentWeek
+          },
+          include: [{
+            model: ScheduleTemplate,
+            as: 'template',
+            attributes: ['name', 'description']
+          }]
+        });
+
+        if (weeklySchedule && weeklySchedule.template) {
+          context += `\nPLANTILLA ACTUAL: ${weeklySchedule.template.name}\n`;
+          if (weeklySchedule.template.description) {
+            context += `Descripción: ${weeklySchedule.template.description}\n`;
+          }
+        }
+
+        context += '\n';
+      } else {
+        // Consulta general sobre horarios
+        context += `=== RESUMEN DE HORARIOS ===\n\n`;
+        
+        const employeesWithSchedules = [];
+        for (const emp of employees) {
+          const schedules = await Schedule.findAll({
+            where: { employeeId: emp.id, isWorkingDay: true }
+          });
+
+          if (schedules.length > 0) {
+            let totalWeekMinutes = 0;
+            let hasBreak = false;
+            let morningShift = false;
+            let afternoonShift = false;
+            let splitShift = false;
+            
+            schedules.forEach(schedule => {
+              if (schedule.startTime && schedule.endTime) {
+                const start = new Date(`1970-01-01T${schedule.startTime}`);
+                const end = new Date(`1970-01-01T${schedule.endTime}`);
+                let dayMinutes = (end - start) / (1000 * 60);
+                
+                // Detectar tipo de turno
+                const startHour = parseInt(schedule.startTime.split(':')[0]);
+                const endHour = parseInt(schedule.endTime.split(':')[0]);
+                
+                if (schedule.breakStartTime && schedule.breakEndTime) {
+                  hasBreak = true;
+                  splitShift = true;
+                  const breakStart = new Date(`1970-01-01T${schedule.breakStartTime}`);
+                  const breakEnd = new Date(`1970-01-01T${schedule.breakEndTime}`);
+                  dayMinutes -= (breakEnd - breakStart) / (1000 * 60);
+                }
+                
+                // Turno de mañana: empieza antes de las 10 y termina antes de las 16
+                if (startHour < 10 && endHour <= 16 && !hasBreak) {
+                  morningShift = true;
+                }
+                
+                // Turno de tarde: empieza después de las 13
+                if (startHour >= 13) {
+                  afternoonShift = true;
+                }
+                
+                totalWeekMinutes += dayMinutes;
+              }
+            });
+
+            const totalHours = Math.floor(totalWeekMinutes / 60);
+            const totalMinutes = Math.round(totalWeekMinutes % 60);
+            
+            let shiftType = 'Completo';
+            if (splitShift) shiftType = 'Partido';
+            else if (morningShift) shiftType = 'Mañana';
+            else if (afternoonShift) shiftType = 'Tarde';
+            
+            employeesWithSchedules.push({
+              name: emp.name,
+              workingDays: schedules.length,
+              totalHours: `${totalHours}h ${totalMinutes}m`,
+              totalMinutes: totalWeekMinutes,
+              shiftType: shiftType
+            });
+          }
+        }
+
+        // Detectar qué tipo de consulta es
+        if (messageLower.includes('40 horas') || messageLower.includes('40h')) {
+          const fullTime = employeesWithSchedules.filter(emp => {
+            const hours = Math.floor(emp.totalMinutes / 60);
+            return hours >= 38 && hours <= 42; // Rango de 38-42 horas
+          });
+          
+          if (fullTime.length > 0) {
+            context += `EMPLEADOS CON JORNADA COMPLETA (≈40 HORAS):\n`;
+            fullTime.forEach(emp => {
+              context += `- ${emp.name}: ${emp.totalHours} semanales\n`;
+            });
+          } else {
+            context += `No hay empleados con jornada de 40 horas semanales.\n`;
+          }
+        } else if (messageLower.includes('mañana') || messageLower.includes('manana')) {
+          const morningEmployees = employeesWithSchedules.filter(emp => emp.shiftType === 'Mañana');
+          
+          if (morningEmployees.length > 0) {
+            context += `EMPLEADOS CON TURNO DE MAÑANA:\n`;
+            morningEmployees.forEach(emp => {
+              context += `- ${emp.name}: ${emp.totalHours} semanales\n`;
+            });
+          } else {
+            context += `No hay empleados con turno de mañana exclusivo.\n`;
+          }
+        } else if (messageLower.includes('tarde')) {
+          const afternoonEmployees = employeesWithSchedules.filter(emp => emp.shiftType === 'Tarde');
+          
+          if (afternoonEmployees.length > 0) {
+            context += `EMPLEADOS CON TURNO DE TARDE:\n`;
+            afternoonEmployees.forEach(emp => {
+              context += `- ${emp.name}: ${emp.totalHours} semanales\n`;
+            });
+          } else {
+            context += `No hay empleados con turno de tarde exclusivo.\n`;
+          }
+        } else if (messageLower.includes('partido')) {
+          const splitEmployees = employeesWithSchedules.filter(emp => emp.shiftType === 'Partido');
+          
+          if (splitEmployees.length > 0) {
+            context += `EMPLEADOS CON TURNO PARTIDO:\n`;
+            splitEmployees.forEach(emp => {
+              context += `- ${emp.name}: ${emp.totalHours} semanales\n`;
+            });
+          } else {
+            context += `No hay empleados con turno partido.\n`;
+          }
+        } else {
+          // Resumen general con tipo de turno
+          if (employeesWithSchedules.length > 0) {
+            context += `EMPLEADOS CON HORARIO ASIGNADO:\n`;
+            employeesWithSchedules.slice(0, 10).forEach(emp => {
+              context += `- ${emp.name}: ${emp.workingDays} días/semana, ${emp.totalHours} semanales (Turno ${emp.shiftType})\n`;
+            });
+          } else {
+            context += `No hay empleados con horarios asignados.\n`;
+          }
+        }
+        
+        context += '\n';
+      }
+
+    } catch (error) {
+      console.error('Error obteniendo contexto de horarios:', error);
+      context += 'Error al obtener información de horarios.\n';
+    }
+
+    return context;
+  }
+
+  getWeekNumber(date) {
+    const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+    const dayNum = d.getUTCDay() || 7;
+    d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+    const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+    return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
   }
 
   async executeSQL(query) {
