@@ -1717,7 +1717,9 @@ const WeeklyViewContent = () => {
                     <div className="text-xs text-brand-medium">{employee.employeeCode}</div>
                   </td>
                   {weekDates.map((date, dayIndex) => {
-                    const dayOfWeek = date.getDay() === 0 ? 0 : date.getDay(); // Sunday = 0
+                    // Convertir de JavaScript (0=Domingo) a nuestro formato (0=Lunes)
+                    const jsDayOfWeek = date.getDay(); // 0=Domingo, 1=Lunes, ..., 6=Sábado
+                    const dayOfWeek = jsDayOfWeek === 0 ? 6 : jsDayOfWeek - 1; // 0=Lunes, ..., 6=Domingo
                     const schedule = getScheduleForDay(employee.id, dayOfWeek);
                     
                     return (
@@ -3512,8 +3514,8 @@ const WeeklySchedulesContent = () => {
                                   .filter(day => day.isWorkingDay)
                                   .sort((a, b) => a.dayOfWeek - b.dayOfWeek)
                                   .map((day, idx) => {
-                                    // 0=Domingo, 1=Lunes, 2=Martes, 3=Miércoles, 4=Jueves, 5=Viernes, 6=Sábado
-                                    const dayNames = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+                                    // 0=Lunes, 1=Martes, 2=Miércoles, 3=Jueves, 4=Viernes, 5=Sábado, 6=Domingo
+                                    const dayNames = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
                                     const dayName = dayNames[day.dayOfWeek];
                                     
                                     return (
@@ -3557,7 +3559,7 @@ const WeeklySchedulesContent = () => {
                                   <strong>Días no laborales:</strong> {
                                     schedule.template.templateDays
                                       .filter(d => !d.isWorkingDay)
-                                      .map(d => ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'][d.dayOfWeek])
+                                      .map(d => ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'][d.dayOfWeek])
                                       .join(', ')
                                   }
                                 </div>
@@ -4097,32 +4099,20 @@ const WeeklySchedulesContent = () => {
 // Template Form Component with Split Schedule Support and Multiple Breaks
 const TemplateForm = ({ template, onClose }) => {
   const { user } = useAuth();
-  // Reordenar días para que empiecen en Lunes (1,2,3,4,5,6,0)
+  // Crear días empezando por Lunes (0=Lunes, 1=Martes, ..., 6=Domingo)
   const initializeDays = () => {
-    if (template?.templateDays) {
-      // Si es edición, ordenar los días recibidos empezando por Lunes
-      const sortedDays = [...template.templateDays].sort((a, b) => {
-        const orderA = a.dayOfWeek === 0 ? 7 : a.dayOfWeek;
-        const orderB = b.dayOfWeek === 0 ? 7 : b.dayOfWeek;
-        return orderA - orderB;
-      });
-      return sortedDays;
-    } else {
-      // Si es creación, crear días empezando por Lunes
-      return [0, 1, 2, 3, 4, 5, 6].map(dayOfWeek => ({
-        dayOfWeek: dayOfWeek,
-        isWorkingDay: dayOfWeek >= 0 && dayOfWeek <= 4, // Lunes a Viernes por defecto
-        isSplitSchedule: false,
-        startTime: '09:00',
-        endTime: '18:00',
-        morningStart: '09:00',
-        morningEnd: '14:00',
-        afternoonStart: '16:00',
-        afternoonEnd: '20:00',
-        notes: '',
-        breaks: []
-      }));
-    }
+    // Siempre crear días nuevos empezando por Lunes, sin importar si es edición o creación
+    const days = [
+      { dayOfWeek: 0, isWorkingDay: true, isSplitSchedule: false, startTime: '09:00', endTime: '18:00', morningStart: '09:00', morningEnd: '14:00', afternoonStart: '16:00', afternoonEnd: '20:00', notes: '', breaks: [] },
+      { dayOfWeek: 1, isWorkingDay: true, isSplitSchedule: false, startTime: '09:00', endTime: '18:00', morningStart: '09:00', morningEnd: '14:00', afternoonStart: '16:00', afternoonEnd: '20:00', notes: '', breaks: [] },
+      { dayOfWeek: 2, isWorkingDay: true, isSplitSchedule: false, startTime: '09:00', endTime: '18:00', morningStart: '09:00', morningEnd: '14:00', afternoonStart: '16:00', afternoonEnd: '20:00', notes: '', breaks: [] },
+      { dayOfWeek: 3, isWorkingDay: true, isSplitSchedule: false, startTime: '09:00', endTime: '18:00', morningStart: '09:00', morningEnd: '14:00', afternoonStart: '16:00', afternoonEnd: '20:00', notes: '', breaks: [] },
+      { dayOfWeek: 4, isWorkingDay: true, isSplitSchedule: false, startTime: '09:00', endTime: '18:00', morningStart: '09:00', morningEnd: '14:00', afternoonStart: '16:00', afternoonEnd: '20:00', notes: '', breaks: [] },
+      { dayOfWeek: 5, isWorkingDay: false, isSplitSchedule: false, startTime: '09:00', endTime: '18:00', morningStart: '09:00', morningEnd: '14:00', afternoonStart: '16:00', afternoonEnd: '20:00', notes: '', breaks: [] },
+      { dayOfWeek: 6, isWorkingDay: false, isSplitSchedule: false, startTime: '09:00', endTime: '18:00', morningStart: '09:00', morningEnd: '14:00', afternoonStart: '16:00', afternoonEnd: '20:00', notes: '', breaks: [] }
+    ];
+    console.log('🆕 initializeDays:', days);
+    return days;
   };
 
   const [formData, setFormData] = useState({
@@ -4130,6 +4120,44 @@ const TemplateForm = ({ template, onClose }) => {
     description: template?.description || '',
     days: initializeDays()
   });
+
+  // Cargar datos de la plantilla cuando se edita
+  useEffect(() => {
+    if (template && template.templateDays && template.templateDays.length > 0) {
+      console.log('📝 Cargando plantilla existente:', template);
+      
+      // Crear un array de 7 días con valores por defecto
+      const days = initializeDays();
+      
+      // Actualizar con los datos de la plantilla
+      template.templateDays.forEach(templateDay => {
+        const dayIndex = templateDay.dayOfWeek;
+        if (dayIndex >= 0 && dayIndex <= 6) {
+          days[dayIndex] = {
+            dayOfWeek: templateDay.dayOfWeek,
+            isWorkingDay: templateDay.isWorkingDay,
+            isSplitSchedule: templateDay.isSplitSchedule || false,
+            startTime: templateDay.startTime || '09:00',
+            endTime: templateDay.endTime || '18:00',
+            morningStart: templateDay.morningStart || '09:00',
+            morningEnd: templateDay.morningEnd || '14:00',
+            afternoonStart: templateDay.afternoonStart || '16:00',
+            afternoonEnd: templateDay.afternoonEnd || '20:00',
+            notes: templateDay.notes || '',
+            breaks: templateDay.breaks || []
+          };
+        }
+      });
+      
+      console.log('✅ Días cargados:', days);
+      
+      setFormData({
+        name: template.name || '',
+        description: template.description || '',
+        days: days
+      });
+    }
+  }, [template]);
 
   // Array de nombres de días: 0=Lunes, 1=Martes, 2=Miércoles, 3=Jueves, 4=Viernes, 5=Sábado, 6=Domingo
   const dayNames = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
@@ -4211,6 +4239,9 @@ const TemplateForm = ({ template, onClose }) => {
         notes: day.notes || null,
         breaks: day.breaks || []
       }));
+      
+      console.log('🔍 formData.days antes de limpiar:', formData.days);
+      console.log('🧹 cleanedDays:', cleanedDays);
       
       const payload = {
         name: formData.name,
@@ -4498,19 +4529,15 @@ const TemplateForm = ({ template, onClose }) => {
 const CustomScheduleForm = ({ employeeId, year, weekNumber, onClose, onSuccess }) => {
   const { user } = useAuth();
   const [formData, setFormData] = useState({
-    days: Array(7).fill(null).map((_, i) => ({
-      dayOfWeek: i,
-      isWorkingDay: false,
-      isSplitSchedule: false,
-      startTime: '09:00',
-      endTime: '18:00',
-      morningStart: '09:00',
-      morningEnd: '14:00',
-      afternoonStart: '16:00',
-      afternoonEnd: '20:00',
-      notes: '',
-      breaks: []
-    }))
+    days: [
+      { dayOfWeek: 0, isWorkingDay: false, isSplitSchedule: false, startTime: '09:00', endTime: '18:00', morningStart: '09:00', morningEnd: '14:00', afternoonStart: '16:00', afternoonEnd: '20:00', notes: '', breaks: [] },
+      { dayOfWeek: 1, isWorkingDay: false, isSplitSchedule: false, startTime: '09:00', endTime: '18:00', morningStart: '09:00', morningEnd: '14:00', afternoonStart: '16:00', afternoonEnd: '20:00', notes: '', breaks: [] },
+      { dayOfWeek: 2, isWorkingDay: false, isSplitSchedule: false, startTime: '09:00', endTime: '18:00', morningStart: '09:00', morningEnd: '14:00', afternoonStart: '16:00', afternoonEnd: '20:00', notes: '', breaks: [] },
+      { dayOfWeek: 3, isWorkingDay: false, isSplitSchedule: false, startTime: '09:00', endTime: '18:00', morningStart: '09:00', morningEnd: '14:00', afternoonStart: '16:00', afternoonEnd: '20:00', notes: '', breaks: [] },
+      { dayOfWeek: 4, isWorkingDay: false, isSplitSchedule: false, startTime: '09:00', endTime: '18:00', morningStart: '09:00', morningEnd: '14:00', afternoonStart: '16:00', afternoonEnd: '20:00', notes: '', breaks: [] },
+      { dayOfWeek: 5, isWorkingDay: false, isSplitSchedule: false, startTime: '09:00', endTime: '18:00', morningStart: '09:00', morningEnd: '14:00', afternoonStart: '16:00', afternoonEnd: '20:00', notes: '', breaks: [] },
+      { dayOfWeek: 6, isWorkingDay: false, isSplitSchedule: false, startTime: '09:00', endTime: '18:00', morningStart: '09:00', morningEnd: '14:00', afternoonStart: '16:00', afternoonEnd: '20:00', notes: '', breaks: [] }
+    ]
   });
 
   // Array de nombres de días: 0=Lunes, 1=Martes, 2=Miércoles, 3=Jueves, 4=Viernes, 5=Sábado, 6=Domingo
@@ -4635,18 +4662,18 @@ const CustomScheduleForm = ({ employeeId, year, weekNumber, onClose, onSuccess }
         <div className="space-y-4">
           {formData.days.map((day, index) => (
             <div key={index} className="border border-neutral-mid/30 rounded-lg p-4 bg-neutral-light/30">
-              <div className="flex items-center justify-between mb-3">
-                <h4 className="font-semibold text-neutral-dark">{dayNames[index]}</h4>
-                <div className="flex items-center space-x-4">
-                  <label className="flex items-center space-x-2 text-sm">
-                    <input
-                      type="checkbox"
-                      checked={day.isWorkingDay}
-                      onChange={(e) => handleDayChange(index, 'isWorkingDay', e.target.checked)}
-                      className="rounded border-neutral-mid/30"
-                    />
-                    <span>Día laboral</span>
-                  </label>
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="font-semibold text-neutral-dark">{dayNames[index]}</h4>
+                  <div className="flex items-center space-x-4">
+                    <label className="flex items-center space-x-2 text-sm">
+                      <input
+                        type="checkbox"
+                        checked={day.isWorkingDay}
+                        onChange={(e) => handleDayChange(index, 'isWorkingDay', e.target.checked)}
+                        className="rounded border-neutral-mid/30"
+                      />
+                      <span>Día laboral</span>
+                    </label>
                   {day.isWorkingDay && (
                     <>
                       <label className="flex items-center space-x-2 text-sm">
