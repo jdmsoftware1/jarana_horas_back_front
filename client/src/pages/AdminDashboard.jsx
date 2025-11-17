@@ -2435,15 +2435,15 @@ const ScheduleModal = ({ employee, onClose }) => {
   const [loading, setLoading] = useState(false);
   const [loadingSchedules, setLoadingSchedules] = useState(true);
 
-  // Array de días: 0=Domingo, 1=Lunes, 2=Martes, 3=Miércoles, 4=Jueves, 5=Viernes, 6=Sábado
+  // Array de días: 0=Lunes, 1=Martes, 2=Miércoles, 3=Jueves, 4=Viernes, 5=Sábado, 6=Domingo
   const daysOfWeek = [
-    { id: 0, name: 'Domingo' },
-    { id: 1, name: 'Lunes' },
-    { id: 2, name: 'Martes' },
-    { id: 3, name: 'Miércoles' },
-    { id: 4, name: 'Jueves' },
-    { id: 5, name: 'Viernes' },
-    { id: 6, name: 'Sábado' }
+    { id: 0, name: 'Lunes' },
+    { id: 1, name: 'Martes' },
+    { id: 2, name: 'Miércoles' },
+    { id: 3, name: 'Jueves' },
+    { id: 4, name: 'Viernes' },
+    { id: 5, name: 'Sábado' },
+    { id: 6, name: 'Domingo' }
   ];
 
   // Load existing schedules or initialize with defaults
@@ -2475,7 +2475,7 @@ const ScheduleModal = ({ employee, onClose }) => {
             scheduleMap[day.id] || {
               dayOfWeek: day.id,
               dayName: day.name,
-              isWorkingDay: day.id >= 1 && day.id <= 5, // Monday to Friday by default
+              isWorkingDay: day.id >= 0 && day.id <= 4, // Monday to Friday by default (Lunes a Viernes)
               startTime: '09:00',
               endTime: '17:00',
               breakStartTime: '13:00',
@@ -2490,7 +2490,7 @@ const ScheduleModal = ({ employee, onClose }) => {
           const defaultSchedules = daysOfWeek.map(day => ({
             dayOfWeek: day.id,
             dayName: day.name,
-            isWorkingDay: day.id >= 1 && day.id <= 5,
+            isWorkingDay: day.id >= 0 && day.id <= 4,
             startTime: '09:00',
             endTime: '17:00',
             breakStartTime: '13:00',
@@ -2505,7 +2505,7 @@ const ScheduleModal = ({ employee, onClose }) => {
         const defaultSchedules = daysOfWeek.map(day => ({
           dayOfWeek: day.id,
           dayName: day.name,
-          isWorkingDay: day.id >= 1 && day.id <= 5,
+          isWorkingDay: day.id >= 0 && day.id <= 4,
           startTime: '09:00',
           endTime: '17:00',
           breakStartTime: '13:00',
@@ -4109,9 +4109,9 @@ const TemplateForm = ({ template, onClose }) => {
       return sortedDays;
     } else {
       // Si es creación, crear días empezando por Lunes
-      return [1, 2, 3, 4, 5, 6, 0].map(dayOfWeek => ({
+      return [0, 1, 2, 3, 4, 5, 6].map(dayOfWeek => ({
         dayOfWeek: dayOfWeek,
-        isWorkingDay: dayOfWeek >= 1 && dayOfWeek <= 5, // Lunes a Viernes por defecto
+        isWorkingDay: dayOfWeek >= 0 && dayOfWeek <= 4, // Lunes a Viernes por defecto
         isSplitSchedule: false,
         startTime: '09:00',
         endTime: '18:00',
@@ -4131,8 +4131,8 @@ const TemplateForm = ({ template, onClose }) => {
     days: initializeDays()
   });
 
-  // Array de nombres de días: 0=Domingo, 1=Lunes, 2=Martes, 3=Miércoles, 4=Jueves, 5=Viernes, 6=Sábado
-  const dayNames = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+  // Array de nombres de días: 0=Lunes, 1=Martes, 2=Miércoles, 3=Jueves, 4=Viernes, 5=Sábado, 6=Domingo
+  const dayNames = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 
   const handleDayChange = (dayIndex, field, value) => {
     const newDays = [...formData.days];
@@ -4513,6 +4513,7 @@ const CustomScheduleForm = ({ employeeId, year, weekNumber, onClose, onSuccess }
     }))
   });
 
+  // Array de nombres de días: 0=Lunes, 1=Martes, 2=Miércoles, 3=Jueves, 4=Viernes, 5=Sábado, 6=Domingo
   const dayNames = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 
   const handleDayChange = (dayIndex, field, value) => {
