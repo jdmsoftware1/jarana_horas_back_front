@@ -56,6 +56,7 @@ const authenticatedFetch = async (url, options = {}) => {
 import Footer from '../components/Footer';
 import AIChat from '../components/AIChat';
 import LoadingSpinner from '../components/LoadingSpinner';
+import EmployeeCalendar from '../components/EmployeeCalendar';
 
 const EmployeePortal = () => {
   const navigate = useNavigate();
@@ -216,9 +217,10 @@ const EmployeePortal = () => {
 
   // Main portal interface
   const tabs = [
-    { id: 'dashboard', label: 'Dashboard', icon: User },
+    { id: 'dashboard', label: 'Inicio', icon: User },
+    { id: 'calendar', label: 'Calendario', icon: Calendar },
     { id: 'records', label: 'Mis Fichajes', icon: Clock },
-    { id: 'vacations', label: 'Vacaciones', icon: Calendar },
+    { id: 'vacations', label: 'Vacaciones', icon: MessageCircle },
     { id: 'reports', label: 'Reportes', icon: FileText }
   ];
 
@@ -284,6 +286,7 @@ const EmployeePortal = () => {
       {/* Content */}
       <div className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {activeTab === 'dashboard' && <DashboardContent employee={employee} />}
+        {activeTab === 'calendar' && <EmployeeCalendar employee={employee} />}
         {activeTab === 'records' && <RecordsContent employee={employee} />}
         {activeTab === 'vacations' && <VacationsContent employee={employee} />}
         {activeTab === 'reports' && <ReportsContent employee={employee} />}
@@ -880,17 +883,19 @@ const RecordsContent = ({ employee }) => {
 // Vacations Content
 const VacationsContent = ({ employee }) => {
   const [vacations, setVacations] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showNewForm, setShowNewForm] = useState(false);
   const [newVacation, setNewVacation] = useState({
     startDate: '',
     endDate: '',
-    type: 'vacation',
+    categoryId: '',
     reason: ''
   });
 
   useEffect(() => {
     fetchVacations();
+    fetchCategories();
   }, [employee.id]);
 
   const fetchVacations = async () => {
@@ -908,6 +913,22 @@ const VacationsContent = ({ employee }) => {
     }
   };
 
+  const fetchCategories = async () => {
+    try {
+      const response = await fetch(`${getApiUrl()}/absence-categories`);
+      if (response.ok) {
+        const data = await response.json();
+        setCategories(data);
+        // Establecer la primera categoría como default si existe
+        if (data.length > 0 && !newVacation.categoryId) {
+          setNewVacation(prev => ({ ...prev, categoryId: data[0].id }));
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+    }
+  };
+
   const handleSubmitVacation = async (e) => {
     e.preventDefault();
     try {
@@ -922,7 +943,12 @@ const VacationsContent = ({ employee }) => {
 
       if (response.ok) {
         setShowNewForm(false);
-        setNewVacation({ startDate: '', endDate: '', type: 'vacation', reason: '' });
+        setNewVacation({ 
+          startDate: '', 
+          endDate: '', 
+          categoryId: categories.length > 0 ? categories[0].id : '', 
+          reason: '' 
+        });
         fetchVacations();
       }
     } catch (error) {
@@ -1031,19 +1057,40 @@ const VacationsContent = ({ employee }) => {
               </div>
             </div>
 
+            {/* Indicador de días solicitados */}
+            {newVacation.startDate && newVacation.endDate && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-blue-800">
+                    📅 Días solicitados:
+                  </span>
+                  <span className="text-lg font-bold text-blue-900">
+                    {calculateDays(newVacation.startDate, newVacation.endDate)} días
+                  </span>
+                </div>
+              </div>
+            )}
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Tipo de Ausencia
               </label>
               <select
-                value={newVacation.type}
-                onChange={(e) => setNewVacation({...newVacation, type: e.target.value})}
+                value={newVacation.categoryId}
+                onChange={(e) => setNewVacation({...newVacation, categoryId: e.target.value})}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-light focus:border-transparent"
+                required
               >
-                <option value="vacation">Vacaciones</option>
-                <option value="sick_leave">Baja médica</option>
-                <option value="personal">Personal</option>
-                <option value="other">Otro</option>
+                {categories.length === 0 ? (
+                  <option value="">Cargando categorías...</option>
+                ) : (
+                  categories.map(category => (
+                    <option key={category.id} value={category.id}>
+                      {category.icon} {category.name}
+                      {category.maxDaysPerYear && ` (máx. ${category.maxDaysPerYear} días/año)`}
+                    </option>
+                  ))
+                )}
               </select>
             </div>
 
@@ -1126,7 +1173,22 @@ const VacationsContent = ({ employee }) => {
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="text-sm text-gray-900">{getTypeText(vacation.type)}</span>
+                      {vacation.category ? (
+                        <div className="flex items-center space-x-2">
+                          <div 
+                            className="w-8 h-8 rounded flex items-center justify-center text-lg"
+                            style={{ 
+                              backgroundColor: `${vacation.category.color}20`, 
+                              color: vacation.category.color 
+                            }}
+                          >
+                            {vacation.category.icon}
+                          </div>
+                          <span className="text-sm text-gray-900">{vacation.category.name}</span>
+                        </div>
+                      ) : (
+                        <span className="text-sm text-gray-900">{getTypeText(vacation.type)}</span>
+                      )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className="text-sm font-medium text-gray-900">

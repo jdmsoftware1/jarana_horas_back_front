@@ -2,8 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
-const EmployeeCalendar = () => {
+// Helper para obtener API URL
+const getApiUrl = () => {
+  const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+  return `${baseUrl}/api`;
+};
+
+const EmployeeCalendar = ({ employee }) => {
   const { user } = useAuth();
+  const employeeData = employee || user; // Usar prop o contexto
   const [currentDate, setCurrentDate] = useState(new Date());
   const [vacations, setVacations] = useState([]);
   const [holidays, setHolidays] = useState([]);
@@ -41,16 +48,16 @@ const EmployeeCalendar = () => {
   useEffect(() => {
     fetchVacations();
     setHolidays(spanishHolidays);
-  }, [currentDate, user]);
+  }, [currentDate, employeeData]);
 
   const fetchVacations = async () => {
-    if (!user?.id) return;
+    if (!employeeData?.id) return;
     
     try {
       setLoading(true);
       const year = currentDate.getFullYear();
       const response = await fetch(
-        `http://localhost:3000/api/vacations/employee/${user.id}?year=${year}`
+        `${getApiUrl()}/vacations/employee/${employeeData.id}?year=${year}`
       );
       
       if (response.ok) {

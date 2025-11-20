@@ -19,61 +19,52 @@ export const AbsenceCategory = sequelize.define('AbsenceCategory', {
   code: {
     type: DataTypes.STRING(50),
     allowNull: false,
-    unique: true,
-    comment: 'Código único para identificar la categoría (ej: PATERNITY_LEAVE, REST_48H)'
+    unique: true
   },
   color: {
     type: DataTypes.STRING(7),
     allowNull: true,
-    defaultValue: '#3B82F6',
-    comment: 'Color hexadecimal para mostrar en el calendario'
+    defaultValue: '#3B82F6'
   },
   icon: {
     type: DataTypes.STRING(50),
     allowNull: true,
-    defaultValue: '📅',
-    comment: 'Emoji o icono para representar la categoría'
+    defaultValue: '📅'
   },
   requiresApproval: {
     type: DataTypes.BOOLEAN,
     allowNull: false,
     defaultValue: true,
-    field: 'requires_approval',
-    comment: 'Si requiere aprobación del administrador'
+    field: 'requires_approval'
   },
   isPaid: {
     type: DataTypes.BOOLEAN,
     allowNull: true,
     defaultValue: null,
-    field: 'is_paid',
-    comment: 'Si es pagado (null = depende del caso)'
+    field: 'is_paid'
   },
   maxDaysPerYear: {
     type: DataTypes.INTEGER,
     allowNull: true,
-    field: 'max_days_per_year',
-    comment: 'Máximo de días permitidos por año (null = sin límite)'
+    field: 'max_days_per_year'
   },
   isActive: {
     type: DataTypes.BOOLEAN,
     allowNull: false,
     defaultValue: true,
-    field: 'is_active',
-    comment: 'Si la categoría está activa y disponible para usar'
+    field: 'is_active'
   },
   sortOrder: {
     type: DataTypes.INTEGER,
     allowNull: false,
     defaultValue: 0,
-    field: 'sort_order',
-    comment: 'Orden de visualización'
+    field: 'sort_order'
   },
   isSystem: {
     type: DataTypes.BOOLEAN,
     allowNull: false,
     defaultValue: false,
-    field: 'is_system',
-    comment: 'Si es una categoría del sistema (no se puede eliminar)'
+    field: 'is_system'
   }
 }, {
   tableName: 'absence_categories',

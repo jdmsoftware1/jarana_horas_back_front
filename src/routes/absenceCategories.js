@@ -1,11 +1,11 @@
 import express from 'express';
 import { AbsenceCategory } from '../models/index.js';
-import { authenticateToken, isAdmin } from '../middleware/auth.js';
+import { authMiddleware, adminMiddleware } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
 // Get all absence categories
-router.get('/', authenticateToken, async (req, res) => {
+router.get('/', authMiddleware, async (req, res) => {
   try {
     const categories = await AbsenceCategory.findAll({
       where: { isActive: true },
@@ -20,7 +20,7 @@ router.get('/', authenticateToken, async (req, res) => {
 });
 
 // Get all categories (including inactive) - Admin only
-router.get('/all', authenticateToken, isAdmin, async (req, res) => {
+router.get('/all', authMiddleware, adminMiddleware, async (req, res) => {
   try {
     const categories = await AbsenceCategory.findAll({
       order: [['sortOrder', 'ASC'], ['name', 'ASC']]
@@ -34,7 +34,7 @@ router.get('/all', authenticateToken, isAdmin, async (req, res) => {
 });
 
 // Get single category
-router.get('/:id', authenticateToken, async (req, res) => {
+router.get('/:id', authMiddleware, async (req, res) => {
   try {
     const category = await AbsenceCategory.findByPk(req.params.id);
     
@@ -50,7 +50,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
 });
 
 // Create new category - Admin only
-router.post('/', authenticateToken, isAdmin, async (req, res) => {
+router.post('/', authMiddleware, adminMiddleware, async (req, res) => {
   try {
     const {
       name,
@@ -98,7 +98,7 @@ router.post('/', authenticateToken, isAdmin, async (req, res) => {
 });
 
 // Update category - Admin only
-router.put('/:id', authenticateToken, isAdmin, async (req, res) => {
+router.put('/:id', authMiddleware, adminMiddleware, async (req, res) => {
   try {
     const category = await AbsenceCategory.findByPk(req.params.id);
     
@@ -150,7 +150,7 @@ router.put('/:id', authenticateToken, isAdmin, async (req, res) => {
 });
 
 // Delete category - Admin only (only non-system categories)
-router.delete('/:id', authenticateToken, isAdmin, async (req, res) => {
+router.delete('/:id', authMiddleware, adminMiddleware, async (req, res) => {
   try {
     const category = await AbsenceCategory.findByPk(req.params.id);
     
@@ -181,7 +181,7 @@ router.delete('/:id', authenticateToken, isAdmin, async (req, res) => {
 });
 
 // Initialize default categories - Admin only
-router.post('/initialize-defaults', authenticateToken, isAdmin, async (req, res) => {
+router.post('/initialize-defaults', authMiddleware, adminMiddleware, async (req, res) => {
   try {
     const defaultCategories = AbsenceCategory.getDefaultCategories();
     const created = [];
