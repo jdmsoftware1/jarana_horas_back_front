@@ -25,6 +25,7 @@ import advancedSchedulingRoutes from './routes/advancedScheduling.js';
 import scheduleBreakRoutes from './routes/scheduleBreaks.js';
 import advancedBreakRoutes from './routes/advancedBreaks.js';
 import vacationRoutes from './routes/vacations.js';
+import absenceCategoryRoutes from './routes/absenceCategories.js';
 import aiRoutes from './routes/ai.js';
 import embeddingService from './services/embeddingService.js';
 
@@ -100,6 +101,7 @@ app.use('/api/advanced-scheduling', advancedSchedulingRoutes);
 app.use('/api/schedule-breaks', scheduleBreakRoutes);
 app.use('/api/advanced-breaks', advancedBreakRoutes);
 app.use('/api/vacations', vacationRoutes);
+app.use('/api/absence-categories', absenceCategoryRoutes);
 app.use('/api/ai', aiRoutes);
 
 // Serve static files from React build (PRODUCTION)
@@ -141,12 +143,14 @@ async function startServer() {
     // Initialize embedding service (loads documents from /knowledge)
     await embeddingService.initialize();
     
-    app.listen(PORT, () => {
+    // Listen on all network interfaces (0.0.0.0) to allow mobile app connections
+    app.listen(PORT, '0.0.0.0', () => {
       console.log('\n' + '='.repeat(60));
       console.log(`🚀 ${config.company.name} - Sistema de Registro Horario`);
       console.log('='.repeat(60));
       console.log(`📊 Entorno: ${config.server.env}`);
-      console.log(`🌐 Servidor: http://localhost:${PORT}`);
+      console.log(`🌐 Servidor Local: http://localhost:${PORT}`);
+      console.log(`📱 Servidor Red: http://192.168.31.164:${PORT}`);
       console.log(`🔗 API: http://localhost:${PORT}/api`);
       console.log(`🔐 Google OAuth: ${config.features.googleAuth ? '✅ Habilitado' : '❌ Deshabilitado'}`);
       console.log(`🤖 AI Chat: ${config.features.aiChat ? '✅ Habilitado' : '❌ Deshabilitado'}`);

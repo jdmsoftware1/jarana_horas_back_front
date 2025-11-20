@@ -26,10 +26,21 @@ export const Vacation = sequelize.define('Vacation', {
     allowNull: false,
     field: 'end_date'
   },
+  categoryId: {
+    type: DataTypes.UUID,
+    allowNull: true,
+    field: 'category_id',
+    references: {
+      model: 'absence_categories',
+      key: 'id'
+    },
+    comment: 'Nueva relación con categorías personalizables'
+  },
   type: {
     type: DataTypes.ENUM('vacation', 'sick_leave', 'personal', 'maternity', 'paternity', 'other'),
-    allowNull: false,
-    defaultValue: 'vacation'
+    allowNull: true,
+    defaultValue: 'vacation',
+    comment: 'Campo legacy, se mantiene por compatibilidad'
   },
   status: {
     type: DataTypes.ENUM('pending', 'approved', 'rejected'),

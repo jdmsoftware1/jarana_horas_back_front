@@ -1,6 +1,6 @@
 import express from 'express';
 import { Op } from 'sequelize';
-import { Employee, Vacation } from '../models/index.js';
+import { Employee, Vacation, AbsenceCategory } from '../models/index.js';
 
 const router = express.Router();
 
@@ -44,6 +44,11 @@ router.get('/', async (req, res) => {
           model: Employee,
           as: 'approver',
           attributes: ['id', 'name', 'employeeCode'],
+          required: false
+        },
+        {
+          model: AbsenceCategory,
+          as: 'category',
           required: false
         }
       ],
@@ -90,6 +95,11 @@ router.get('/employee/:employeeId', async (req, res) => {
           as: 'approver',
           attributes: ['id', 'name', 'employeeCode'],
           required: false
+        },
+        {
+          model: AbsenceCategory,
+          as: 'category',
+          required: false
         }
       ],
       order: [['startDate', 'DESC']]
@@ -105,7 +115,7 @@ router.get('/employee/:employeeId', async (req, res) => {
 // Create new vacation request
 router.post('/', async (req, res) => {
   try {
-    const { employeeId, startDate, endDate, type, reason, notes } = req.body;
+    const { employeeId, startDate, endDate, type, categoryId, reason, notes } = req.body;
     
     if (!employeeId || !startDate || !endDate) {
       return res.status(400).json({ error: 'Employee ID, start date, and end date are required' });
@@ -147,19 +157,25 @@ router.post('/', async (req, res) => {
       employeeId,
       startDate,
       endDate,
+      categoryId: categoryId || null,
       type: type || 'vacation',
       reason,
       notes,
       status: 'pending'
     });
     
-    // Include employee data in response
+    // Include employee and category data in response
     const vacationWithEmployee = await Vacation.findByPk(vacation.id, {
       include: [
         {
           model: Employee,
           as: 'employee',
           attributes: ['id', 'name', 'employeeCode']
+        },
+        {
+          model: AbsenceCategory,
+          as: 'category',
+          required: false
         }
       ]
     });
@@ -205,6 +221,11 @@ router.put('/:id/status', async (req, res) => {
           model: Employee,
           as: 'approver',
           attributes: ['id', 'name', 'employeeCode'],
+          required: false
+        },
+        {
+          model: AbsenceCategory,
+          as: 'category',
           required: false
         }
       ]
@@ -257,6 +278,11 @@ router.get('/check/:employeeId/:date', async (req, res) => {
           model: Employee,
           as: 'employee',
           attributes: ['id', 'name', 'employeeCode']
+        },
+        {
+          model: AbsenceCategory,
+          as: 'category',
+          required: false
         }
       ]
     });

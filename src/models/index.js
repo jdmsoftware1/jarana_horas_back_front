@@ -7,6 +7,7 @@ import { WeeklySchedule } from './WeeklySchedule.js';
 import { DailyScheduleException } from './DailyScheduleException.js';
 import { ScheduleBreak } from './ScheduleBreak.js';
 import { Vacation } from './Vacation.js';
+import { AbsenceCategory } from './AbsenceCategory.js';
 import AccessLog from './AccessLog.js';
 
 // Define associations
@@ -43,6 +44,17 @@ Vacation.belongsTo(Employee, {
 Vacation.belongsTo(Employee, {
   foreignKey: 'approvedBy',
   as: 'approver'
+});
+
+// Absence Category associations
+AbsenceCategory.hasMany(Vacation, {
+  foreignKey: 'categoryId',
+  as: 'vacations'
+});
+
+Vacation.belongsTo(AbsenceCategory, {
+  foreignKey: 'categoryId',
+  as: 'category'
 });
 
 // Schedule Template associations
@@ -180,4 +192,4 @@ AccessLog.belongsTo(Employee, {
   as: 'employee'
 });
 
-export { Employee, Record, Schedule, ScheduleTemplate, ScheduleTemplateDay, WeeklySchedule, DailyScheduleException, ScheduleBreak, Vacation, AccessLog };
+export { Employee, Record, Schedule, ScheduleTemplate, ScheduleTemplateDay, WeeklySchedule, DailyScheduleException, ScheduleBreak, Vacation, AbsenceCategory, AccessLog };
