@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { 
   LayoutDashboard, 
   Clock, 
@@ -12,44 +12,62 @@ import {
   ChevronRight,
   CalendarDays,
   FileText,
-  Home
+  Home,
+  Brain,
+  Shield
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
-const SidebarMenu = ({ isAdmin = false }) => {
+const SidebarMenu = ({ isAdmin = false, activeTab, onTabChange }) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const location = useLocation();
   const [isCollapsed, setIsCollapsed] = useState(false);
-
-  const isActive = (path) => location.pathname === path;
 
   const handleLogout = () => {
     logout();
     navigate('/admin-login');
   };
 
-  // Menú items para empleados
+  // Menú items para empleados (rutas reales)
   const employeeMenuItems = [
-    { path: '/employee-portal', icon: Home, label: 'Inicio' },
-    { path: '/employee-portal/checkin', icon: Clock, label: 'Fichar' },
-    { path: '/employee-portal/calendar', icon: CalendarDays, label: 'Calendario' },
-    { path: '/employee-portal/records', icon: BarChart3, label: 'Mis Registros' },
-    { path: '/employee-portal/absences', icon: Calendar, label: 'Ausencias' },
+    { id: 'home', icon: Home, label: 'Inicio', path: '/employee-portal' },
+    { id: 'checkin', icon: Clock, label: 'Fichar', path: '/employee-portal' },
+    { id: 'calendar', icon: CalendarDays, label: 'Calendario', path: '/employee-calendar' },
+    { id: 'records', icon: BarChart3, label: 'Mis Registros', path: '/employee-portal' },
+    { id: 'absences', icon: Calendar, label: 'Ausencias', path: '/employee-portal' },
   ];
 
-  // Menú items para admin
+  // Menú items para admin (tabs)
   const adminMenuItems = [
-    { path: '/admin-dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-    { path: '/admin-dashboard/employees', icon: Users, label: 'Empleados' },
-    { path: '/admin-dashboard/schedules', icon: Clock, label: 'Horarios' },
-    { path: '/admin-dashboard/records', icon: FileText, label: 'Registros' },
-    { path: '/admin-dashboard/absences', icon: Calendar, label: 'Ausencias' },
-    { path: '/admin-dashboard/reports', icon: BarChart3, label: 'Informes' },
-    { path: '/admin-dashboard/settings', icon: Settings, label: 'Configuración' },
+    { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+    { id: 'employees', icon: Users, label: 'Empleados' },
+    { id: 'records', icon: Clock, label: 'Registros' },
+    { id: 'weekly-schedules', icon: Calendar, label: 'Horarios Semanales' },
+    { id: 'vacations', icon: Shield, label: 'Vacaciones' },
+    { id: 'absence-categories', icon: FileText, label: 'Categorías Ausencias' },
+    { id: 'weekly', icon: FileText, label: 'Vista Semanal' },
+    { id: 'ai-knowledge', icon: Brain, label: 'Gestión IA' },
+    { id: 'settings', icon: Settings, label: 'Configuración' },
   ];
 
   const menuItems = isAdmin ? adminMenuItems : employeeMenuItems;
+
+  const handleItemClick = (item) => {
+    if (isAdmin && onTabChange) {
+      // Para admin, cambiar tab
+      onTabChange(item.id);
+    } else if (item.path) {
+      // Para empleados, navegar a ruta
+      navigate(item.path);
+    }
+  };
+
+  const isActive = (item) => {
+    if (isAdmin) {
+      return activeTab === item.id;
+    }
+    return false; // Para empleados, podrías implementar lógica de ruta activa
+  };
 
   return (
     <div 
@@ -117,13 +135,13 @@ const SidebarMenu = ({ isAdmin = false }) => {
         <div className="space-y-1 px-2">
           {menuItems.map((item) => {
             const Icon = item.icon;
-            const active = isActive(item.path);
+            const active = isActive(item);
             
             return (
-              <Link
-                key={item.path}
-                to={item.path}
-                className={`group flex items-center px-3 py-3 rounded-lg transition-all duration-200 relative ${
+              <button
+                key={item.id}
+                onClick={() => handleItemClick(item)}
+                className={`group flex items-center w-full px-3 py-3 rounded-lg transition-all duration-200 relative ${
                   active
                     ? 'bg-brand-light text-brand-cream shadow-lg'
                     : 'text-brand-accent hover:bg-brand-deep hover:text-brand-cream'
@@ -147,7 +165,7 @@ const SidebarMenu = ({ isAdmin = false }) => {
                     <div className="absolute right-full top-1/2 -translate-y-1/2 border-8 border-transparent border-r-brand-dark"></div>
                   </div>
                 )}
-              </Link>
+              </button>
             );
           })}
         </div>

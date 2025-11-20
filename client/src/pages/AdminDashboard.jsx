@@ -8,9 +8,7 @@ import {
   Users, 
   Clock, 
   Calendar, 
-  Settings, 
-  LogOut, 
-  Power,
+  Settings,
   Plus,
   QrCode,
   BarChart3,
@@ -18,12 +16,13 @@ import {
   Shield,
   Filter,
   Download,
-  Brain,
-  LogIn
+  Brain
 } from 'lucide-react';
 import LoadingSpinner from '../components/LoadingSpinner';
 import Footer from '../components/Footer';
 import AIChat from '../components/AIChat';
+import Layout from '../components/Layout';
+import AbsenceCategoryManager from '../components/AbsenceCategoryManager';
 
 // Helper function for API URL
 const getApiUrl = () => {
@@ -77,12 +76,9 @@ const getTimeAgo = (timestamp) => {
 };
 
 const AdminDashboard = () => {
-  const { user, loading, logout } = useAuth();
+  const { user, loading } = useAuth();
   const navigate = useNavigate();
-  const { deactivateSystem, getSessionDuration } = useSystem();
   const [activeTab, setActiveTab] = useState('dashboard');
-  
-  const sessionDuration = getSessionDuration();
 
   // Doble verificación de seguridad
   if (loading) {
@@ -112,6 +108,7 @@ const AdminDashboard = () => {
     { id: 'records', label: 'Registros', icon: Clock },
     { id: 'weekly-schedules', label: 'Horarios Semanales', icon: Calendar },
     { id: 'vacations', label: 'Vacaciones', icon: Shield },
+    { id: 'absence-categories', label: 'Categorías Ausencias', icon: FileText },
     { id: 'weekly', label: 'Vista Semanal', icon: FileText },
   ];
 
@@ -126,96 +123,9 @@ const AdminDashboard = () => {
     { id: 'settings', label: 'Configuración', icon: Settings }
   ];
 
-  const handleBackToHome = () => {
-    navigate('/');
-  };
-
-  const handleDeactivateSystem = () => {
-    if (confirm('¿Estás seguro de que quieres desactivar el sistema? Esto cerrará tu sesión y los empleados no podrán fichar hasta que se reactive.')) {
-      deactivateSystem();
-      // Cerrar sesión y redirigir
-      logout();
-      navigate('/', { replace: true });
-      window.location.reload(); // Forzar recarga completa
-    }
-  };
-
   return (
-    <div className="flex-1 bg-neutral-light">
-      
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b border-neutral-mid/20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            
-            {/* Logo & Title */}
-            <div className="flex items-center">
-              <img 
-                src="/images/logo_jarana.jpg" 
-                alt="Jarana Logo" 
-                className="h-10 w-10 rounded-full object-cover mr-3"
-              />
-              <div>
-                <h1 className="text-xl font-bold text-neutral-dark font-serif">
-                  Jarana Admin
-                </h1>
-                <p className="text-sm text-brand-medium">Panel de Administración</p>
-              </div>
-            </div>
-
-            {/* System Status & Controls */}
-            <div className="flex items-center space-x-4">
-              <div className="text-right">
-                <p className="text-sm font-medium text-neutral-dark">
-                  {user?.firstName} {user?.lastName}
-                </p>
-                <p className="text-xs text-brand-medium">
-                  Sesión activa: {sessionDuration?.total || '0h 0m'}
-                </p>
-              </div>
-              <button
-                onClick={handleDeactivateSystem}
-                className="inline-flex items-center px-3 py-2 border border-red-200 text-sm leading-4 font-medium rounded-md text-red-600 hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors"
-              >
-                <Power className="h-4 w-4 mr-2" />
-                Desactivar Sistema
-              </button>
-              <button
-                onClick={handleBackToHome}
-                className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-brand-medium hover:text-neutral-dark hover:bg-neutral-light focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-light transition-colors"
-              >
-                <LogOut className="h-4 w-4 mr-2" />
-                Salir
-              </button>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        
-        {/* Navigation Tabs */}
-        <div className="border-b border-neutral-mid/30 mb-8">
-          <nav className="-mb-px flex space-x-8">
-            {tabs.map((tab) => {
-              const Icon = tab.icon;
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center transition-colors ${
-                    activeTab === tab.id
-                      ? 'border-brand-light text-brand-light'
-                      : 'border-transparent text-brand-medium hover:text-neutral-dark hover:border-brand-accent'
-                  }`}
-                >
-                  <Icon className="h-5 w-5 mr-2" />
-                  {tab.label}
-                </button>
-              );
-            })}
-          </nav>
-        </div>
+    <Layout isAdmin={true} activeTab={activeTab} onTabChange={setActiveTab}>
+      <div className="max-w-7xl mx-auto px-8 py-8">
 
         {/* Tab Content */}
         {activeTab === 'dashboard' && <DashboardContent />}
@@ -223,6 +133,7 @@ const AdminDashboard = () => {
         {activeTab === 'records' && <RecordsContent />}
         {activeTab === 'weekly-schedules' && <WeeklySchedulesContent />}
         {activeTab === 'vacations' && <VacationsContent />}
+        {activeTab === 'absence-categories' && <AbsenceCategoryManager />}
         {activeTab === 'weekly' && <WeeklyViewContent />}
         {activeTab === 'ai-knowledge' && aiUtilsEnabled && <AIKnowledgeContent />}
         {activeTab === 'settings' && <SettingsContent />}
@@ -232,7 +143,7 @@ const AdminDashboard = () => {
       
       {/* AI Chat Component */}
       <AIChat userId={user?.id} userRole="admin" />
-    </div>
+    </Layout>
   );
 };
 
@@ -1453,8 +1364,20 @@ const VacationsContent = () => {
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-dark">
                     {vacation.employee ? `${vacation.employee.name} (${vacation.employee.employeeCode})` : 'Empleado desconocido'}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-dark">
-                    {getTypeLabel(vacation.type)}
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    {vacation.category ? (
+                      <div className="flex items-center space-x-2">
+                        <div 
+                          className="w-8 h-8 rounded flex items-center justify-center text-lg"
+                          style={{ backgroundColor: `${vacation.category.color}20`, color: vacation.category.color }}
+                        >
+                          {vacation.category.icon}
+                        </div>
+                        <span className="text-sm text-neutral-dark">{vacation.category.name}</span>
+                      </div>
+                    ) : (
+                      <span className="text-sm text-neutral-dark">{getTypeLabel(vacation.type)}</span>
+                    )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-dark">
                     {new Date(vacation.startDate).toLocaleDateString('es-ES')} - {new Date(vacation.endDate).toLocaleDateString('es-ES')}
