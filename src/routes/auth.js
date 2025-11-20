@@ -141,6 +141,13 @@ router.post('/refresh', authMiddleware, (req, res) => {
 
 // Iniciar autenticación con Google
 router.get('/google', 
+  (req, res, next) => {
+    // Guardar si viene de móvil en la sesión o query
+    const isMobile = req.query.mobile === 'true';
+    req.session = req.session || {};
+    req.session.isMobile = isMobile;
+    next();
+  },
   passport.authenticate('google', { 
     scope: ['profile', 'email'],
     session: false 
@@ -158,13 +165,29 @@ router.get('/google/callback',
       // req.user viene de passport (configurado en config/passport.js)
       const { employee, accessToken, refreshToken } = req.user;
 
-      // Redirigir al frontend con los tokens
-      const redirectUrl = `${process.env.CLIENT_URL || 'http://localhost:5173'}/auth/callback?token=${accessToken}&refreshToken=${refreshToken}`;
+      // Verificar si viene de móvil
+      const isMobile = req.session?.isMobile || req.query.mobile === 'true';
+
+      let redirectUrl;
+      if (isMobile) {
+        // Redirigir a la app móvil usando deep link
+        redirectUrl = `registrohorario://auth/callback?token=${accessToken}`;
+        if (refreshToken) {
+          redirectUrl += `&refresh=${refreshToken}`;
+        }
+      } else {
+        // Redirigir al frontend web
+        redirectUrl = `${process.env.CLIENT_URL || 'http://localhost:5173'}/auth/callback?token=${accessToken}&refreshToken=${refreshToken}`;
+      }
       
       res.redirect(redirectUrl);
     } catch (error) {
       console.error('❌ Error en callback de Google:', error);
-      res.redirect(`${process.env.CLIENT_URL || 'http://localhost:5173'}/admin-login?error=callback_error`);
+      const isMobile = req.session?.isMobile || req.query.mobile === 'true';
+      const errorUrl = isMobile 
+        ? 'registrohorario://auth/callback?error=callback_error'
+        : `${process.env.CLIENT_URL || 'http://localhost:5173'}/admin-login?error=callback_error`;
+      res.redirect(errorUrl);
     }
   }
 );
