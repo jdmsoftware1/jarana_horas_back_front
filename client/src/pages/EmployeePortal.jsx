@@ -64,7 +64,7 @@ const EmployeePortal = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [loading, setLoading] = useState(false);
   const [authCode, setAuthCode] = useState('');
-  const [employeeCode, setEmployeeCode] = useState('');
+  const [employeeCode, setEmployeeCode] = useState('EMP');
   const [authError, setAuthError] = useState('');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
@@ -111,7 +111,7 @@ const EmployeePortal = () => {
   const handleLogout = () => {
     setEmployee(null);
     setIsAuthenticated(false);
-    setEmployeeCode('');
+    setEmployeeCode('EMP');
     setAuthCode('');
     setActiveTab('dashboard');
   };
@@ -915,14 +915,17 @@ const VacationsContent = ({ employee }) => {
 
   const fetchCategories = async () => {
     try {
-      const response = await fetch(`${getApiUrl()}/absence-categories`);
+      const response = await fetch(`${getApiUrl()}/absence-categories/active`);
       if (response.ok) {
         const data = await response.json();
+        console.log('Categorías cargadas:', data);
         setCategories(data);
         // Establecer la primera categoría como default si existe
         if (data.length > 0 && !newVacation.categoryId) {
           setNewVacation(prev => ({ ...prev, categoryId: data[0].id }));
         }
+      } else {
+        console.error('Error al cargar categorías:', response.status);
       }
     } catch (error) {
       console.error('Error fetching categories:', error);
@@ -1075,23 +1078,27 @@ const VacationsContent = ({ employee }) => {
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Tipo de Ausencia
               </label>
-              <select
-                value={newVacation.categoryId}
-                onChange={(e) => setNewVacation({...newVacation, categoryId: e.target.value})}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-light focus:border-transparent"
-                required
-              >
-                {categories.length === 0 ? (
-                  <option value="">Cargando categorías...</option>
-                ) : (
-                  categories.map(category => (
+              {categories.length === 0 ? (
+                <div className="w-full px-4 py-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  <p className="text-sm text-yellow-800">
+                    ⚠️ No hay categorías de ausencias disponibles. Por favor, contacta al administrador para que configure las categorías.
+                  </p>
+                </div>
+              ) : (
+                <select
+                  value={newVacation.categoryId}
+                  onChange={(e) => setNewVacation({...newVacation, categoryId: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-light focus:border-transparent"
+                  required
+                >
+                  {categories.map(category => (
                     <option key={category.id} value={category.id}>
                       {category.icon} {category.name}
                       {category.maxDaysPerYear && ` (máx. ${category.maxDaysPerYear} días/año)`}
                     </option>
-                  ))
-                )}
-              </select>
+                  ))}
+                </select>
+              )}
             </div>
 
             <div>
@@ -1117,7 +1124,12 @@ const VacationsContent = ({ employee }) => {
               </button>
               <button
                 type="submit"
-                className="px-4 py-2 bg-brand-light text-brand-cream rounded-lg hover:bg-brand-medium transition-colors"
+                disabled={categories.length === 0}
+                className={`px-4 py-2 rounded-lg transition-colors ${
+                  categories.length === 0
+                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    : 'bg-brand-light text-brand-cream hover:bg-brand-medium'
+                }`}
               >
                 Enviar Solicitud
               </button>

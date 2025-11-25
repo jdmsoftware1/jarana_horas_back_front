@@ -2057,6 +2057,27 @@ const CreateEmployeeModal = ({ onClose, onSuccess }) => {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [nextCode, setNextCode] = useState({ nextCode: 'EMP01', prefix: 'EMP', number: 1 });
+  const [loadingCode, setLoadingCode] = useState(true);
+
+  // Obtener el próximo código de empleado al montar el componente
+  useEffect(() => {
+    const fetchNextCode = async () => {
+      try {
+        const response = await authenticatedFetch(`${getApiUrl()}/admin/next-employee-code?role=employee`);
+        if (response.ok) {
+          const data = await response.json();
+          setNextCode(data);
+        }
+      } catch (err) {
+        console.error('Error fetching next code:', err);
+      } finally {
+        setLoadingCode(false);
+      }
+    };
+    
+    fetchNextCode();
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -2100,6 +2121,23 @@ const CreateEmployeeModal = ({ onClose, onSuccess }) => {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Código de empleado (informativo) */}
+          <div className="bg-brand-light/10 border border-brand-light/30 rounded-lg p-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-neutral-dark">Código de empleado</p>
+                <p className="text-xs text-neutral-mid mt-1">Se asignará automáticamente</p>
+              </div>
+              <div className="text-right">
+                {loadingCode ? (
+                  <span className="text-sm text-neutral-mid">Cargando...</span>
+                ) : (
+                  <span className="text-lg font-bold text-brand-dark">{nextCode.nextCode}</span>
+                )}
+              </div>
+            </div>
+          </div>
+
           <div>
             <label className="block text-sm font-medium text-neutral-dark mb-2">
               Nombre completo

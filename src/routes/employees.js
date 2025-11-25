@@ -56,7 +56,26 @@ router.post('/', authMiddleware, adminMiddleware, async (req, res) => {
     }
 
     // Generate unique employee code
-    const employeeCode = `EMP${Date.now().toString().slice(-6)}`;
+    // Buscar el último código EMP para generar el siguiente
+    const lastEmployee = await Employee.findOne({
+      where: { 
+        role: 'employee',
+        employeeCode: { [Op.like]: 'EMP%' }
+      },
+      order: [['employeeCode', 'DESC']]
+    });
+    
+    let nextNumber = 1;
+    if (lastEmployee && lastEmployee.employeeCode) {
+      const lastNumber = parseInt(lastEmployee.employeeCode.replace('EMP', ''));
+      if (!isNaN(lastNumber)) {
+        nextNumber = lastNumber + 1;
+      }
+    }
+    
+    // Usar 2 dígitos si es menor a 100, 3 si es mayor
+    const padding = nextNumber < 100 ? 2 : 3;
+    const employeeCode = `EMP${String(nextNumber).padStart(padding, '0')}`;
 
     // Generate TOTP secret for Google Authenticator
     const totpSecret = speakeasy.generateSecret({

@@ -4,7 +4,22 @@ import { authMiddleware, adminMiddleware } from '../middleware/authMiddleware.js
 
 const router = express.Router();
 
-// Get all absence categories
+// Get active absence categories (public route for employees)
+router.get('/active', async (req, res) => {
+  try {
+    const categories = await AbsenceCategory.findAll({
+      where: { isActive: true },
+      order: [['sortOrder', 'ASC'], ['name', 'ASC']]
+    });
+    
+    res.json(categories);
+  } catch (error) {
+    console.error('Error fetching absence categories:', error);
+    res.status(500).json({ error: 'Error al obtener las categorías de ausencias' });
+  }
+});
+
+// Get all absence categories (authenticated)
 router.get('/', authMiddleware, async (req, res) => {
   try {
     const categories = await AbsenceCategory.findAll({

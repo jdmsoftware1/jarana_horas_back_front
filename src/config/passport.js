@@ -137,14 +137,23 @@ passport.use(
           
           // Generar un employeeCode único
           const lastEmployee = await Employee.findOne({
+            where: { 
+              employeeCode: { [Op.like]: 'EMP%' }
+            },
             order: [['employeeCode', 'DESC']]
           });
           
-          let newCode = 'EMP001';
+          let nextNumber = 1;
           if (lastEmployee && lastEmployee.employeeCode) {
             const lastNumber = parseInt(lastEmployee.employeeCode.replace('EMP', ''));
-            newCode = `EMP${String(lastNumber + 1).padStart(3, '0')}`;
+            if (!isNaN(lastNumber)) {
+              nextNumber = lastNumber + 1;
+            }
           }
+          
+          // Usar 2 dígitos si es menor a 100, 3 si es mayor
+          const padding = nextNumber < 100 ? 2 : 3;
+          const newCode = `EMP${String(nextNumber).padStart(padding, '0')}`;
           
           // Crear nuevo empleado con rol admin (Google OAuth solo para admins)
           employee = await Employee.create({
