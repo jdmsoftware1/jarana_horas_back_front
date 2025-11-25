@@ -9,6 +9,7 @@ import { ScheduleBreak } from './ScheduleBreak.js';
 import { Vacation } from './Vacation.js';
 import { AbsenceCategory } from './AbsenceCategory.js';
 import AccessLog from './AccessLog.js';
+import { AIConversation } from './AIConversation.js';
 
 // Define associations
 Employee.hasMany(Record, {
@@ -192,4 +193,15 @@ AccessLog.belongsTo(Employee, {
   as: 'employee'
 });
 
-export { Employee, Record, Schedule, ScheduleTemplate, ScheduleTemplateDay, WeeklySchedule, DailyScheduleException, ScheduleBreak, Vacation, AbsenceCategory, AccessLog };
+// AI Conversation associations
+Employee.hasMany(AIConversation, {
+  foreignKey: 'employeeId',
+  as: 'aiConversations'
+});
+
+AIConversation.belongsTo(Employee, {
+  foreignKey: 'employeeId',
+  as: 'employee'
+});
+
+export { Employee, Record, Schedule, ScheduleTemplate, ScheduleTemplateDay, WeeklySchedule, DailyScheduleException, ScheduleBreak, Vacation, AbsenceCategory, AccessLog, AIConversation };

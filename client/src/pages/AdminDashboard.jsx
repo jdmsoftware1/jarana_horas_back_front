@@ -16,7 +16,9 @@ import {
   Shield,
   Filter,
   Download,
-  Brain
+  Brain,
+  LogIn,
+  LogOut
 } from 'lucide-react';
 import LoadingSpinner from '../components/LoadingSpinner';
 import Footer from '../components/Footer';
@@ -748,11 +750,11 @@ const RecordsContent = () => {
     }
   };
 
-  React.useEffect(() => {
+  useEffect(() => {
     fetchEmployees();
   }, []);
 
-  React.useEffect(() => {
+  useEffect(() => {
     fetchRecords();
   }, [selectedEmployee, filter]);
 

@@ -18,6 +18,10 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import Footer from '../components/Footer';
+import AIChat from '../components/AIChat';
+import LoadingSpinner from '../components/LoadingSpinner';
+import EmployeeCalendar from '../components/EmployeeCalendar';
 
 // Helper para obtener API URL
 const getApiUrl = () => {
@@ -53,10 +57,6 @@ const authenticatedFetch = async (url, options = {}) => {
   
   return response;
 };
-import Footer from '../components/Footer';
-import AIChat from '../components/AIChat';
-import LoadingSpinner from '../components/LoadingSpinner';
-import EmployeeCalendar from '../components/EmployeeCalendar';
 
 const EmployeePortal = () => {
   const navigate = useNavigate();
@@ -285,7 +285,7 @@ const EmployeePortal = () => {
 
       {/* Content */}
       <div className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {activeTab === 'dashboard' && <DashboardContent employee={employee} />}
+        {activeTab === 'dashboard' && <DashboardContent employee={employee} setActiveTab={setActiveTab} />}
         {activeTab === 'calendar' && <EmployeeCalendar employee={employee} />}
         {activeTab === 'records' && <RecordsContent employee={employee} />}
         {activeTab === 'vacations' && <VacationsContent employee={employee} />}
@@ -301,7 +301,7 @@ const EmployeePortal = () => {
 };
 
 // Dashboard Content
-const DashboardContent = ({ employee }) => {
+const DashboardContent = ({ employee, setActiveTab }) => {
   const [stats, setStats] = useState({
     todayStatus: null,
     weekHours: 0,
@@ -484,7 +484,10 @@ const DashboardContent = ({ employee }) => {
               </div>
             </Link>
             
-            <button className="flex items-center p-4 bg-green-50 hover:bg-green-100 rounded-lg transition-colors">
+            <button 
+              onClick={() => setActiveTab('vacations')}
+              className="flex items-center p-4 bg-green-50 hover:bg-green-100 rounded-lg transition-colors"
+            >
               <Plus className="h-8 w-8 text-green-600 mr-3" />
               <div>
                 <p className="font-medium text-neutral-dark">Solicitar Vacaciones</p>
@@ -492,7 +495,13 @@ const DashboardContent = ({ employee }) => {
               </div>
             </button>
             
-            <button className="flex items-center p-4 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors">
+            <button 
+              onClick={() => {
+                const chatButton = document.querySelector('[data-ai-chat-button]');
+                if (chatButton) chatButton.click();
+              }}
+              className="flex items-center p-4 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors"
+            >
               <MessageCircle className="h-8 w-8 text-blue-600 mr-3" />
               <div>
                 <p className="font-medium text-neutral-dark">Chat con IA</p>
@@ -1174,14 +1183,24 @@ const VacationsContent = ({ employee }) => {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {vacations.map((vacation) => (
+                {vacations.map((vacation) => {
+                  // Validar fechas
+                  const startDate = vacation.startDate ? new Date(vacation.startDate) : null;
+                  const endDate = vacation.endDate ? new Date(vacation.endDate) : null;
+                  const createdAt = vacation.createdAt ? new Date(vacation.createdAt) : null;
+                  
+                  const isValidStartDate = startDate && !isNaN(startDate.getTime());
+                  const isValidEndDate = endDate && !isNaN(endDate.getTime());
+                  const isValidCreatedAt = createdAt && !isNaN(createdAt.getTime());
+                  
+                  return (
                   <tr key={vacation.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-medium text-gray-900">
-                        {format(new Date(vacation.startDate), 'dd/MM/yyyy', { locale: es })} - {format(new Date(vacation.endDate), 'dd/MM/yyyy', { locale: es })}
+                        {isValidStartDate ? format(startDate, 'dd/MM/yyyy', { locale: es }) : 'N/A'} - {isValidEndDate ? format(endDate, 'dd/MM/yyyy', { locale: es }) : 'N/A'}
                       </div>
                       <div className="text-xs text-gray-500">
-                        Solicitado: {format(new Date(vacation.createdAt), 'dd/MM/yyyy', { locale: es })}
+                        Solicitado: {isValidCreatedAt ? format(createdAt, 'dd/MM/yyyy', { locale: es }) : 'N/A'}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -1219,7 +1238,8 @@ const VacationsContent = ({ employee }) => {
                       {vacation.reason || '-'}
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>

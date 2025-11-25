@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { MessageCircle, X, Send, Bot, User, Loader2 } from 'lucide-react';
+import { MessageCircle, X, Send, Bot, User, Loader2, History, Trash2, Plus, ChevronLeft } from 'lucide-react';
 
 const getApiUrl = () => {
   const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
@@ -8,6 +8,9 @@ const getApiUrl = () => {
 
 const AIChat = ({ userId, userRole = 'employee' }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
+  const [conversations, setConversations] = useState([]);
+  const [currentConversationId, setCurrentConversationId] = useState(null);
   const [messages, setMessages] = useState([
     {
       id: 1,
@@ -27,6 +30,156 @@ const AIChat = ({ userId, userRole = 'employee' }) => {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // Cargar conversaciones al abrir el chat (solo para admin)
+  useEffect(() => {
+    if (isOpen && userRole === 'admin') {
+      loadConversations();
+    }
+  }, [isOpen, userRole]);
+
+  const loadConversations = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${getApiUrl()}/ai-conversations`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setConversations(data);
+      }
+    } catch (error) {
+      console.error('Error loading conversations:', error);
+    }
+  };
+
+  const saveConversation = async () => {
+    if (messages.length <= 1) return; // No guardar si solo está el mensaje de bienvenida
+
+    try {
+      const token = localStorage.getItem('token');
+      const conversationMessages = messages.map(msg => ({
+        role: msg.type === 'user' ? 'user' : 'assistant',
+        content: msg.content,
+        timestamp: msg.timestamp
+      }));
+
+      const response = await fetch(`${getApiUrl()}/ai-conversations`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          conversationId: currentConversationId,
+          messages: conversationMessages,
+          userRole
+        })
+      });
+
+      if (response.ok) {
+        const savedConversation = await response.json();
+        setCurrentConversationId(savedConversation.id);
+        await loadConversations();
+      }
+    } catch (error) {
+      console.error('Error saving conversation:', error);
+    }
+  };
+
+  const loadConversation = async (conversationId) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${getApiUrl()}/ai-conversations/${conversationId}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        const conversation = await response.json();
+        const loadedMessages = conversation.messages.map((msg, index) => ({
+          id: index + 1,
+          type: msg.role === 'user' ? 'user' : 'ai',
+          content: msg.content,
+          timestamp: new Date(msg.timestamp)
+        }));
+        
+        setMessages(loadedMessages);
+        setCurrentConversationId(conversationId);
+        setShowHistory(false);
+      }
+    } catch (error) {
+      console.error('Error loading conversation:', error);
+    }
+  };
+
+  const deleteConversation = async (conversationId, e) => {
+    e.stopPropagation();
+    
+    if (!confirm('¿Estás seguro de que quieres eliminar esta conversación?')) {
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${getApiUrl()}/ai-conversations/${conversationId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        await loadConversations();
+        if (currentConversationId === conversationId) {
+          startNewConversation();
+        }
+      }
+    } catch (error) {
+      console.error('Error deleting conversation:', error);
+    }
+  };
+
+  const deleteAllConversations = async () => {
+    if (!confirm('¿Estás seguro de que quieres eliminar TODAS las conversaciones? Esta acción no se puede deshacer.')) {
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${getApiUrl()}/ai-conversations`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        setConversations([]);
+        startNewConversation();
+        setShowHistory(false);
+      }
+    } catch (error) {
+      console.error('Error deleting all conversations:', error);
+    }
+  };
+
+  const startNewConversation = () => {
+    setMessages([
+      {
+        id: 1,
+        type: 'ai',
+        content: '¡Hola! Soy tu asistente de IA de Jarana. Puedo ayudarte con consultas sobre horarios, vacaciones y registros. ¿En qué puedo ayudarte?',
+        timestamp: new Date()
+      }
+    ]);
+    setCurrentConversationId(null);
+    setShowHistory(false);
+  };
 
   const sendMessage = async () => {
     if (!inputMessage.trim() || isLoading) return;
@@ -77,6 +230,11 @@ const AIChat = ({ userId, userRole = 'employee' }) => {
         };
 
         setMessages(prev => [...prev, aiMessage]);
+        
+        // Guardar conversación automáticamente después de recibir respuesta (solo admin)
+        if (userRole === 'admin') {
+          setTimeout(() => saveConversation(), 500);
+        }
       } else {
         throw new Error(data.error || 'Error en el chat');
       }
@@ -157,19 +315,120 @@ const AIChat = ({ userId, userRole = 'employee' }) => {
       {/* Header */}
       <div className="bg-brand-light text-brand-cream p-4 rounded-t-xl flex items-center justify-between">
         <div className="flex items-center space-x-2">
+          {showHistory && (
+            <button
+              onClick={() => setShowHistory(false)}
+              className="hover:bg-brand-medium rounded-full p-1 transition-colors"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+          )}
           <Bot className="h-5 w-5" />
-          <span className="font-medium">Asistente IA Jarana</span>
+          <span className="font-medium">
+            {showHistory ? 'Historial de Conversaciones' : 'Asistente IA Jarana'}
+          </span>
         </div>
-        <button
-          onClick={() => setIsOpen(false)}
-          className="hover:bg-brand-medium rounded-full p-1 transition-colors"
-        >
-          <X className="h-4 w-4" />
-        </button>
+        <div className="flex items-center space-x-2">
+          {userRole === 'admin' && !showHistory && (
+            <>
+              <button
+                onClick={startNewConversation}
+                className="hover:bg-brand-medium rounded-full p-1 transition-colors"
+                title="Nueva conversación"
+              >
+                <Plus className="h-4 w-4" />
+              </button>
+              <button
+                onClick={() => setShowHistory(true)}
+                className="hover:bg-brand-medium rounded-full p-1 transition-colors relative"
+                title="Ver historial"
+              >
+                <History className="h-4 w-4" />
+                {conversations.length > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
+                    {conversations.length}
+                  </span>
+                )}
+              </button>
+            </>
+          )}
+          <button
+            onClick={() => setIsOpen(false)}
+            className="hover:bg-brand-medium rounded-full p-1 transition-colors"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
       </div>
 
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      {/* History View */}
+      {showHistory ? (
+        <div className="flex-1 overflow-y-auto p-4">
+          {conversations.length === 0 ? (
+            <div className="text-center py-12">
+              <History className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-500">No hay conversaciones guardadas</p>
+              <button
+                onClick={startNewConversation}
+                className="mt-4 bg-brand-light text-brand-cream px-4 py-2 rounded-lg hover:bg-brand-medium transition-colors"
+              >
+                Iniciar nueva conversación
+              </button>
+            </div>
+          ) : (
+            <>
+              <div className="flex justify-between items-center mb-4">
+                <p className="text-sm text-gray-600">{conversations.length} conversaciones</p>
+                {conversations.length > 0 && (
+                  <button
+                    onClick={deleteAllConversations}
+                    className="text-xs text-red-600 hover:text-red-800 flex items-center space-x-1"
+                  >
+                    <Trash2 className="h-3 w-3" />
+                    <span>Eliminar todas</span>
+                  </button>
+                )}
+              </div>
+              <div className="space-y-2">
+                {conversations.map((conv) => (
+                  <div
+                    key={conv.id}
+                    onClick={() => loadConversation(conv.id)}
+                    className="bg-neutral-light hover:bg-brand-light/10 p-3 rounded-lg cursor-pointer transition-colors border border-neutral-mid/20 group"
+                  >
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-neutral-dark truncate">
+                          {conv.title || 'Sin título'}
+                        </p>
+                        <p className="text-xs text-gray-500 mt-1">
+                          {new Date(conv.lastMessageAt).toLocaleDateString('es-ES', {
+                            day: 'numeric',
+                            month: 'short',
+                            year: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
+                        </p>
+                      </div>
+                      <button
+                        onClick={(e) => deleteConversation(conv.id, e)}
+                        className="opacity-0 group-hover:opacity-100 text-red-600 hover:text-red-800 p-1 transition-opacity"
+                        title="Eliminar conversación"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      ) : (
+        <>
+          {/* Messages */}
+          <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages.map((message) => (
           <div
             key={message.id}
@@ -239,26 +498,30 @@ const AIChat = ({ userId, userRole = 'employee' }) => {
       )}
 
       {/* Input */}
-      <div className="p-4 border-t border-neutral-mid/20">
-        <div className="flex space-x-2">
-          <textarea
-            value={inputMessage}
-            onChange={(e) => setInputMessage(e.target.value)}
-            onKeyPress={handleKeyPress}
-            placeholder="Escribe tu mensaje..."
-            className="flex-1 resize-none border border-neutral-mid/30 rounded-lg px-3 py-2 text-sm focus:border-brand-light focus:ring-0 focus:outline-none"
-            rows="2"
-            disabled={isLoading}
-          />
-          <button
-            onClick={sendMessage}
-            disabled={!inputMessage.trim() || isLoading}
-            className="bg-brand-light hover:bg-brand-medium text-brand-cream rounded-lg p-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            <Send className="h-4 w-4" />
-          </button>
+      {!showHistory && (
+        <div className="p-4 border-t border-neutral-mid/20">
+          <div className="flex space-x-2">
+            <textarea
+              value={inputMessage}
+              onChange={(e) => setInputMessage(e.target.value)}
+              onKeyPress={handleKeyPress}
+              placeholder="Escribe tu mensaje..."
+              className="flex-1 resize-none border border-neutral-mid/30 rounded-lg px-3 py-2 text-sm focus:border-brand-light focus:ring-0 focus:outline-none"
+              rows="2"
+              disabled={isLoading}
+            />
+            <button
+              onClick={sendMessage}
+              disabled={!inputMessage.trim() || isLoading}
+              className="bg-brand-light hover:bg-brand-medium text-brand-cream rounded-lg p-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              <Send className="h-4 w-4" />
+            </button>
+          </div>
         </div>
-      </div>
+      )}
+        </>
+      )}
     </div>
   );
 };
