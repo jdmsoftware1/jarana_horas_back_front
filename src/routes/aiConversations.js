@@ -7,13 +7,16 @@ const router = express.Router();
 // Obtener todas las conversaciones del usuario actual
 router.get('/', authMiddleware, async (req, res) => {
   try {
+    console.log('📋 Fetching conversations for employee:', req.employee.id);
     const employeeId = req.employee.id;
     
+    // Intentar consulta simple primero
     const conversations = await AIConversation.findAll({
       where: { employeeId },
-      order: [['last_message_at', 'DESC']],
-      attributes: ['id', 'title', 'userRole', 'lastMessageAt', 'createdAt']
+      order: [['last_message_at', 'DESC']]
     });
+    
+    console.log('✅ Found conversations:', conversations.length);
 
     res.json(conversations);
   } catch (error) {

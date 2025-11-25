@@ -31,16 +31,18 @@ const AIChat = ({ userId, userRole = 'employee' }) => {
     scrollToBottom();
   }, [messages]);
 
-  // Cargar conversaciones al abrir el chat (solo para admin)
+  // Cargar conversaciones al abrir el chat
   useEffect(() => {
-    if (isOpen && userRole === 'admin') {
+    if (isOpen) {
       loadConversations();
     }
   }, [isOpen, userRole]);
 
   const loadConversations = async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = userRole === 'admin' 
+        ? localStorage.getItem('token') 
+        : localStorage.getItem('employeeToken');
       const response = await fetch(`${getApiUrl()}/ai-conversations`, {
         headers: {
           'Authorization': `Bearer ${token}`
@@ -60,7 +62,9 @@ const AIChat = ({ userId, userRole = 'employee' }) => {
     if (messages.length <= 1) return; // No guardar si solo está el mensaje de bienvenida
 
     try {
-      const token = localStorage.getItem('token');
+      const token = userRole === 'admin' 
+        ? localStorage.getItem('token') 
+        : localStorage.getItem('employeeToken');
       const conversationMessages = messages.map(msg => ({
         role: msg.type === 'user' ? 'user' : 'assistant',
         content: msg.content,
@@ -92,7 +96,9 @@ const AIChat = ({ userId, userRole = 'employee' }) => {
 
   const loadConversation = async (conversationId) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = userRole === 'admin' 
+        ? localStorage.getItem('token') 
+        : localStorage.getItem('employeeToken');
       const response = await fetch(`${getApiUrl()}/ai-conversations/${conversationId}`, {
         headers: {
           'Authorization': `Bearer ${token}`
@@ -125,7 +131,9 @@ const AIChat = ({ userId, userRole = 'employee' }) => {
     }
 
     try {
-      const token = localStorage.getItem('token');
+      const token = userRole === 'admin' 
+        ? localStorage.getItem('token') 
+        : localStorage.getItem('employeeToken');
       const response = await fetch(`${getApiUrl()}/ai-conversations/${conversationId}`, {
         method: 'DELETE',
         headers: {
@@ -150,7 +158,9 @@ const AIChat = ({ userId, userRole = 'employee' }) => {
     }
 
     try {
-      const token = localStorage.getItem('token');
+      const token = userRole === 'admin' 
+        ? localStorage.getItem('token') 
+        : localStorage.getItem('employeeToken');
       const response = await fetch(`${getApiUrl()}/ai-conversations`, {
         method: 'DELETE',
         headers: {
