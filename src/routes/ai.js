@@ -20,11 +20,19 @@ const storage = multer.diskStorage({
 const upload = multer({ 
   storage: storage,
   fileFilter: (req, file, cb) => {
-    if (file.originalname.endsWith('.txt')) {
+    const allowedExtensions = ['.txt', '.pdf', '.docx', '.doc'];
+    const hasAllowedExtension = allowedExtensions.some(ext => 
+      file.originalname.toLowerCase().endsWith(ext)
+    );
+    
+    if (hasAllowedExtension) {
       cb(null, true);
     } else {
-      cb(new Error('Solo se permiten archivos .txt'));
+      cb(new Error('Solo se permiten archivos .txt, .pdf, .docx, .doc'));
     }
+  },
+  limits: {
+    fileSize: 10 * 1024 * 1024 // 10MB máximo
   }
 });
 

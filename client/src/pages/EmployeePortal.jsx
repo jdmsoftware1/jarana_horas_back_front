@@ -14,10 +14,23 @@ import {
   XCircle,
   Plus,
   Filter,
-  Download
+  Download,
+  Upload,
+  Eye,
+  Trash2,
+  File,
+  CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
+  LayoutDashboard,
+  BarChart3
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import Footer from '../components/Footer';
+import AIChat from '../components/AIChat';
+import LoadingSpinner from '../components/LoadingSpinner';
+import EmployeeCalendar from '../components/EmployeeCalendar';
 
 // Helper para obtener API URL
 const getApiUrl = () => {
@@ -53,10 +66,6 @@ const authenticatedFetch = async (url, options = {}) => {
   
   return response;
 };
-import Footer from '../components/Footer';
-import AIChat from '../components/AIChat';
-import LoadingSpinner from '../components/LoadingSpinner';
-import EmployeeCalendar from '../components/EmployeeCalendar';
 
 const EmployeePortal = () => {
   const navigate = useNavigate();
@@ -67,6 +76,8 @@ const EmployeePortal = () => {
   const [employeeCode, setEmployeeCode] = useState('EMP');
   const [authError, setAuthError] = useState('');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [unreadDocumentsCount, setUnreadDocumentsCount] = useState(0);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
   // Authenticate employee
   const handleAuth = async (e) => {
@@ -108,12 +119,37 @@ const EmployeePortal = () => {
     }
   };
 
+  // Cargar contador de documentos no leídos
+  const loadUnreadDocumentsCount = async () => {
+    try {
+      const response = await authenticatedFetch(`${getApiUrl()}/documents/admin-to-employee/my-documents`);
+      if (response.ok) {
+        const documents = await response.json();
+        const unreadCount = documents.filter(doc => !doc.readAt).length;
+        setUnreadDocumentsCount(unreadCount);
+      }
+    } catch (error) {
+      console.error('Error loading unread documents count:', error);
+    }
+  };
+
+  // Cargar contador al autenticarse y periódicamente
+  useEffect(() => {
+    if (isAuthenticated && employee) {
+      loadUnreadDocumentsCount();
+      // Actualizar cada 30 segundos
+      const interval = setInterval(loadUnreadDocumentsCount, 30000);
+      return () => clearInterval(interval);
+    }
+  }, [isAuthenticated, employee]);
+
   const handleLogout = () => {
     setEmployee(null);
     setIsAuthenticated(false);
     setEmployeeCode('EMP');
     setAuthCode('');
     setActiveTab('dashboard');
+    setUnreadDocumentsCount(0);
   };
 
   // Authentication form
@@ -215,84 +251,138 @@ const EmployeePortal = () => {
     );
   }
 
-  // Main portal interface
-  const tabs = [
-    { id: 'dashboard', label: 'Inicio', icon: User },
+  // Main portal interface - Sidebar menu items
+  const menuItems = [
+    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'calendar', label: 'Calendario', icon: Calendar },
     { id: 'records', label: 'Mis Fichajes', icon: Clock },
     { id: 'vacations', label: 'Vacaciones', icon: MessageCircle },
-    { id: 'reports', label: 'Reportes', icon: FileText }
+    { id: 'documents', label: 'Documentos', icon: File },
+    { id: 'reports', label: 'Reportes', icon: BarChart3 }
   ];
 
   return (
-    <div className="min-h-screen bg-neutral-light flex flex-col">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b border-neutral-mid/20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
-              <Link 
-                to="/"
-                className="text-brand-medium hover:text-brand-dark transition-colors mr-6"
-              >
-                <ArrowLeft className="h-5 w-5" />
-              </Link>
-              <h1 className="text-xl font-semibold text-neutral-dark">
-                Portal del Empleado
-              </h1>
-            </div>
+    <div className="min-h-screen bg-neutral-light flex">
+      {/* Sidebar */}
+      <aside className={`bg-white border-r border-neutral-mid/20 transition-all duration-300 ${
+        isSidebarCollapsed ? 'w-20' : 'w-64'
+      } flex flex-col`}>
+        {/* Sidebar Header */}
+        <div className="h-16 flex items-center justify-between px-4 border-b border-neutral-mid/20">
+          {!isSidebarCollapsed && (
+            <h2 className="text-lg font-semibold text-brand-dark">Portal</h2>
+          )}
+          <button
+            onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+            className="p-2 rounded-lg hover:bg-neutral-light transition-colors"
+          >
+            {isSidebarCollapsed ? (
+              <ChevronRight className="h-5 w-5 text-brand-medium" />
+            ) : (
+              <ChevronLeft className="h-5 w-5 text-brand-medium" />
+            )}
+          </button>
+        </div>
+
+        {/* Menu Items */}
+        <nav className="flex-1 px-3 py-4 space-y-1">
+          {menuItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = activeTab === item.id;
+            const showBadge = item.id === 'documents' && unreadDocumentsCount > 0;
             
-            <div className="flex items-center space-x-4">
-              <div className="text-right">
-                <p className="text-sm font-medium text-neutral-dark">{employee.name}</p>
-                <p className="text-xs text-brand-medium">{employee.employeeCode}</p>
+            return (
+              <button
+                key={item.id}
+                onClick={() => setActiveTab(item.id)}
+                className={`w-full flex items-center px-3 py-2 rounded-lg transition-colors ${
+                  isActive
+                    ? 'bg-brand-light text-white'
+                    : 'text-brand-medium hover:bg-neutral-light hover:text-brand-dark'
+                }`}
+                title={isSidebarCollapsed ? item.label : ''}
+              >
+                <Icon className={`h-5 w-5 ${isSidebarCollapsed ? 'mx-auto' : 'mr-3'}`} />
+                {!isSidebarCollapsed && (
+                  <>
+                    <span className="flex-1 text-left">{item.label}</span>
+                    {showBadge && (
+                      <span className="inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white bg-red-600 rounded-full">
+                        {unreadDocumentsCount}
+                      </span>
+                    )}
+                  </>
+                )}
+                {isSidebarCollapsed && showBadge && (
+                  <span className="absolute top-1 right-1 h-2 w-2 bg-red-600 rounded-full"></span>
+                )}
+              </button>
+            );
+          })}
+        </nav>
+
+        {/* User Info & Logout */}
+        <div className="border-t border-neutral-mid/20 p-4">
+          {!isSidebarCollapsed ? (
+            <div className="space-y-3">
+              <div className="flex items-center space-x-3">
+                <div className="h-10 w-10 rounded-full bg-brand-light flex items-center justify-center text-white font-semibold">
+                  {employee.name.charAt(0)}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-neutral-dark truncate">{employee.name}</p>
+                  <p className="text-xs text-brand-medium truncate">{employee.employeeCode}</p>
+                </div>
               </div>
               <button
                 onClick={handleLogout}
-                className="text-brand-medium hover:text-brand-dark transition-colors"
+                className="w-full flex items-center justify-center px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors"
               >
-                <LogOut className="h-5 w-5" />
+                <LogOut className="h-4 w-4 mr-2" />
+                Cerrar Sesión
               </button>
             </div>
+          ) : (
+            <button
+              onClick={handleLogout}
+              className="w-full p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+              title="Cerrar Sesión"
+            >
+              <LogOut className="h-5 w-5 mx-auto" />
+            </button>
+          )}
+        </div>
+      </aside>
+
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col">
+        {/* Header */}
+        <header className="bg-white shadow-sm border-b border-neutral-mid/20 h-16 flex items-center px-6">
+          <Link 
+            to="/"
+            className="text-brand-medium hover:text-brand-dark transition-colors mr-4"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Link>
+          <h1 className="text-xl font-semibold text-neutral-dark">
+            {menuItems.find(item => item.id === activeTab)?.label || 'Portal del Empleado'}
+          </h1>
+        </header>
+
+        {/* Content */}
+        <main className="flex-1 overflow-auto p-6">
+          <div className="max-w-7xl mx-auto">
+            {activeTab === 'dashboard' && <DashboardContent employee={employee} setActiveTab={setActiveTab} />}
+            {activeTab === 'calendar' && <EmployeeCalendar employee={employee} />}
+            {activeTab === 'records' && <RecordsContent employee={employee} />}
+            {activeTab === 'vacations' && <VacationsContent employee={employee} />}
+            {activeTab === 'documents' && <DocumentsContent employee={employee} onDocumentRead={loadUnreadDocumentsCount} />}
+            {activeTab === 'reports' && <ReportsContent employee={employee} />}
           </div>
-        </div>
-      </header>
+        </main>
 
-      {/* Navigation Tabs */}
-      <div className="bg-white border-b border-neutral-mid/20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <nav className="flex space-x-8">
-            {tabs.map((tab) => {
-              const Icon = tab.icon;
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center px-1 py-4 border-b-2 font-medium text-sm transition-colors ${
-                    activeTab === tab.id
-                      ? 'border-brand-light text-brand-dark'
-                      : 'border-transparent text-brand-medium hover:text-brand-dark hover:border-brand-light/50'
-                  }`}
-                >
-                  <Icon className="h-4 w-4 mr-2" />
-                  {tab.label}
-                </button>
-              );
-            })}
-          </nav>
-        </div>
+        <Footer />
       </div>
-
-      {/* Content */}
-      <div className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {activeTab === 'dashboard' && <DashboardContent employee={employee} />}
-        {activeTab === 'calendar' && <EmployeeCalendar employee={employee} />}
-        {activeTab === 'records' && <RecordsContent employee={employee} />}
-        {activeTab === 'vacations' && <VacationsContent employee={employee} />}
-        {activeTab === 'reports' && <ReportsContent employee={employee} />}
-      </div>
-
-      <Footer />
       
       {/* AI Chat */}
       <AIChat userId={employee.id} userRole="employee" />
@@ -301,7 +391,7 @@ const EmployeePortal = () => {
 };
 
 // Dashboard Content
-const DashboardContent = ({ employee }) => {
+const DashboardContent = ({ employee, setActiveTab }) => {
   const [stats, setStats] = useState({
     todayStatus: null,
     weekHours: 0,
@@ -484,7 +574,10 @@ const DashboardContent = ({ employee }) => {
               </div>
             </Link>
             
-            <button className="flex items-center p-4 bg-green-50 hover:bg-green-100 rounded-lg transition-colors">
+            <button 
+              onClick={() => setActiveTab('vacations')}
+              className="flex items-center p-4 bg-green-50 hover:bg-green-100 rounded-lg transition-colors"
+            >
               <Plus className="h-8 w-8 text-green-600 mr-3" />
               <div>
                 <p className="font-medium text-neutral-dark">Solicitar Vacaciones</p>
@@ -492,7 +585,13 @@ const DashboardContent = ({ employee }) => {
               </div>
             </button>
             
-            <button className="flex items-center p-4 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors">
+            <button 
+              onClick={() => {
+                const chatButton = document.querySelector('[data-ai-chat-button]');
+                if (chatButton) chatButton.click();
+              }}
+              className="flex items-center p-4 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors"
+            >
               <MessageCircle className="h-8 w-8 text-blue-600 mr-3" />
               <div>
                 <p className="font-medium text-neutral-dark">Chat con IA</p>
@@ -1174,14 +1273,24 @@ const VacationsContent = ({ employee }) => {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {vacations.map((vacation) => (
+                {vacations.map((vacation) => {
+                  // Validar fechas
+                  const startDate = vacation.startDate ? new Date(vacation.startDate) : null;
+                  const endDate = vacation.endDate ? new Date(vacation.endDate) : null;
+                  const createdAt = vacation.createdAt ? new Date(vacation.createdAt) : null;
+                  
+                  const isValidStartDate = startDate && !isNaN(startDate.getTime());
+                  const isValidEndDate = endDate && !isNaN(endDate.getTime());
+                  const isValidCreatedAt = createdAt && !isNaN(createdAt.getTime());
+                  
+                  return (
                   <tr key={vacation.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-medium text-gray-900">
-                        {format(new Date(vacation.startDate), 'dd/MM/yyyy', { locale: es })} - {format(new Date(vacation.endDate), 'dd/MM/yyyy', { locale: es })}
+                        {isValidStartDate ? format(startDate, 'dd/MM/yyyy', { locale: es }) : 'N/A'} - {isValidEndDate ? format(endDate, 'dd/MM/yyyy', { locale: es }) : 'N/A'}
                       </div>
                       <div className="text-xs text-gray-500">
-                        Solicitado: {format(new Date(vacation.createdAt), 'dd/MM/yyyy', { locale: es })}
+                        Solicitado: {isValidCreatedAt ? format(createdAt, 'dd/MM/yyyy', { locale: es }) : 'N/A'}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -1219,7 +1328,8 @@ const VacationsContent = ({ employee }) => {
                       {vacation.reason || '-'}
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -1548,6 +1658,503 @@ const ReportsContent = ({ employee }) => {
           )}
         </div>
       </div>
+    </div>
+  );
+};
+
+// ============================================
+// DOCUMENTS CONTENT
+// ============================================
+
+const DocumentsContent = ({ employee, onDocumentRead }) => {
+  const [view, setView] = useState('received'); // 'received' or 'sent'
+  const [sentDocuments, setSentDocuments] = useState([]);
+  const [receivedDocuments, setReceivedDocuments] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [showUploadModal, setShowUploadModal] = useState(false);
+
+  // Form state
+  const [uploadForm, setUploadForm] = useState({
+    title: '',
+    description: '',
+    documentType: 'justificante',
+    priority: 'normal',
+    file: null
+  });
+
+  useEffect(() => {
+    loadDocuments();
+  }, [view]);
+
+  const loadDocuments = async () => {
+    setLoading(true);
+    try {
+      if (view === 'sent') {
+        const response = await authenticatedFetch(`${getApiUrl()}/documents/employee-to-admin/my-documents`);
+        if (response.ok) {
+          const data = await response.json();
+          setSentDocuments(data);
+        }
+      } else {
+        const response = await authenticatedFetch(`${getApiUrl()}/documents/admin-to-employee/my-documents`);
+        if (response.ok) {
+          const data = await response.json();
+          setReceivedDocuments(data);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading documents:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      // Verificar tamaño (10MB máx)
+      if (file.size > 10 * 1024 * 1024) {
+        alert('El archivo es demasiado grande. Máximo 10MB');
+        return;
+      }
+      setUploadForm({ ...uploadForm, file });
+    }
+  };
+
+  const handleUpload = async (e) => {
+    e.preventDefault();
+    
+    if (!uploadForm.file || !uploadForm.title) {
+      alert('Por favor completa todos los campos requeridos');
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', uploadForm.file);
+      formData.append('title', uploadForm.title);
+      formData.append('description', uploadForm.description);
+      formData.append('documentType', uploadForm.documentType);
+      formData.append('priority', uploadForm.priority);
+
+      const response = await authenticatedFetch(`${getApiUrl()}/documents/employee-to-admin`, {
+        method: 'POST',
+        body: formData
+      });
+
+      if (response.ok) {
+        alert('Documento subido correctamente');
+        setShowUploadModal(false);
+        setUploadForm({
+          title: '',
+          description: '',
+          documentType: 'justificante',
+          priority: 'normal',
+          file: null
+        });
+        setView('sent');
+        loadDocuments();
+      } else {
+        const error = await response.json();
+        alert(`Error: ${error.error || 'No se pudo subir el documento'}`);
+      }
+    } catch (error) {
+      console.error('Error uploading document:', error);
+      alert('Error al subir el documento');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleDownload = async (documentId, originalName) => {
+    try {
+      const response = await authenticatedFetch(`${getApiUrl()}/documents/${documentId}/download`);
+      if (response.ok) {
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = originalName;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+      } else {
+        alert('Error al descargar el documento');
+      }
+    } catch (error) {
+      console.error('Error downloading document:', error);
+      alert('Error al descargar el documento');
+    }
+  };
+
+  const handleMarkAsRead = async (documentId) => {
+    try {
+      const response = await authenticatedFetch(`${getApiUrl()}/documents/${documentId}/mark-read`, {
+        method: 'PATCH'
+      });
+      if (response.ok) {
+        loadDocuments();
+        // Actualizar contador de documentos no leídos
+        if (onDocumentRead) {
+          onDocumentRead();
+        }
+      }
+    } catch (error) {
+      console.error('Error marking as read:', error);
+    }
+  };
+
+  const getStatusBadge = (status) => {
+    const badges = {
+      pending: { color: 'bg-yellow-100 text-yellow-800', label: 'Pendiente', icon: Clock },
+      reviewed: { color: 'bg-blue-100 text-blue-800', label: 'Revisado', icon: Eye },
+      approved: { color: 'bg-green-100 text-green-800', label: 'Aprobado', icon: CheckCircle2 },
+      rejected: { color: 'bg-red-100 text-red-800', label: 'Rechazado', icon: XCircle }
+    };
+    
+    const badge = badges[status] || badges.pending;
+    const Icon = badge.icon;
+    
+    return (
+      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${badge.color}`}>
+        <Icon className="h-3 w-3 mr-1" />
+        {badge.label}
+      </span>
+    );
+  };
+
+  const getPriorityBadge = (priority) => {
+    const badges = {
+      low: { color: 'bg-gray-100 text-gray-800', label: 'Baja' },
+      normal: { color: 'bg-blue-100 text-blue-800', label: 'Normal' },
+      high: { color: 'bg-orange-100 text-orange-800', label: 'Alta' },
+      urgent: { color: 'bg-red-100 text-red-800', label: 'Urgente' }
+    };
+    
+    const badge = badges[priority] || badges.normal;
+    
+    return (
+      <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${badge.color}`}>
+        {badge.label}
+      </span>
+    );
+  };
+
+  const getDocumentTypeLabel = (type) => {
+    const types = {
+      baja_medica: 'Baja Médica',
+      justificante: 'Justificante',
+      certificado: 'Certificado',
+      nomina: 'Nómina',
+      contrato: 'Contrato',
+      politica: 'Política',
+      notificacion: 'Notificación',
+      otro: 'Otro'
+    };
+    return types[type] || type;
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex justify-between items-center">
+        <div>
+          <h2 className="text-2xl font-bold text-neutral-dark">Documentos</h2>
+          <p className="text-brand-medium mt-1">Gestiona tus documentos y comunicaciones</p>
+        </div>
+        <button
+          onClick={() => setShowUploadModal(true)}
+          className="flex items-center space-x-2 px-4 py-2 bg-brand-light text-brand-cream rounded-lg hover:bg-brand-medium transition-colors"
+        >
+          <Upload className="h-4 w-4" />
+          <span>Subir Documento</span>
+        </button>
+      </div>
+
+      {/* View Tabs */}
+      <div className="bg-white rounded-xl shadow-sm border border-neutral-mid/20 p-1 inline-flex">
+        <button
+          onClick={() => setView('received')}
+          className={`px-4 py-2 rounded-lg transition-colors ${
+            view === 'received'
+              ? 'bg-brand-light text-brand-cream'
+              : 'text-neutral-dark hover:bg-neutral-light'
+          }`}
+        >
+          <div className="flex items-center space-x-2">
+            <Download className="h-4 w-4" />
+            <span>Recibidos</span>
+            {receivedDocuments.filter(d => !d.readAt).length > 0 && (
+              <span className="bg-red-500 text-white text-xs rounded-full px-2 py-0.5">
+                {receivedDocuments.filter(d => !d.readAt).length}
+              </span>
+            )}
+          </div>
+        </button>
+        <button
+          onClick={() => setView('sent')}
+          className={`px-4 py-2 rounded-lg transition-colors ${
+            view === 'sent'
+              ? 'bg-brand-light text-brand-cream'
+              : 'text-neutral-dark hover:bg-neutral-light'
+          }`}
+        >
+          <div className="flex items-center space-x-2">
+            <Upload className="h-4 w-4" />
+            <span>Enviados</span>
+          </div>
+        </button>
+      </div>
+
+      {/* Documents List */}
+      {loading ? (
+        <div className="flex justify-center py-12">
+          <LoadingSpinner />
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {view === 'sent' && sentDocuments.length === 0 && (
+            <div className="bg-white rounded-xl shadow-sm border border-neutral-mid/20 p-12 text-center">
+              <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-500">No has enviado ningún documento</p>
+              <button
+                onClick={() => setShowUploadModal(true)}
+                className="mt-4 text-brand-light hover:text-brand-medium"
+              >
+                Subir tu primer documento
+              </button>
+            </div>
+          )}
+
+          {view === 'received' && receivedDocuments.length === 0 && (
+            <div className="bg-white rounded-xl shadow-sm border border-neutral-mid/20 p-12 text-center">
+              <Download className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-500">No has recibido ningún documento</p>
+            </div>
+          )}
+
+          {view === 'sent' && sentDocuments.map((doc) => (
+            <div key={doc.id} className="bg-white rounded-xl shadow-sm border border-neutral-mid/20 p-6">
+              <div className="flex justify-between items-start">
+                <div className="flex-1">
+                  <div className="flex items-center space-x-3 mb-2">
+                    <h3 className="text-lg font-semibold text-neutral-dark">{doc.title}</h3>
+                    {getStatusBadge(doc.status)}
+                    {getPriorityBadge(doc.priority)}
+                  </div>
+                  {doc.description && (
+                    <p className="text-sm text-gray-600 mb-3">{doc.description}</p>
+                  )}
+                  <div className="flex items-center space-x-4 text-sm text-gray-500">
+                    <span className="flex items-center">
+                      <File className="h-4 w-4 mr-1" />
+                      {getDocumentTypeLabel(doc.documentType)}
+                    </span>
+                    <span>
+                      {doc.createdAt || doc.created_at 
+                        ? format(new Date(doc.createdAt || doc.created_at), "d 'de' MMMM, yyyy", { locale: es })
+                        : 'Fecha no disponible'
+                      }
+                    </span>
+                  </div>
+                  {doc.reviewNotes && (
+                    <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                      <p className="text-sm font-medium text-blue-900 mb-1">Notas del revisor:</p>
+                      <p className="text-sm text-blue-700">{doc.reviewNotes}</p>
+                    </div>
+                  )}
+                </div>
+                <button
+                  onClick={() => handleDownload(doc.id, doc.originalName)}
+                  className="ml-4 p-2 text-brand-light hover:bg-brand-light/10 rounded-lg transition-colors"
+                  title="Descargar"
+                >
+                  <Download className="h-5 w-5" />
+                </button>
+              </div>
+            </div>
+          ))}
+
+          {view === 'received' && receivedDocuments.map((doc) => (
+            <div 
+              key={doc.id} 
+              className={`bg-white rounded-xl shadow-sm border p-6 ${
+                !doc.readAt ? 'border-brand-light border-2' : 'border-neutral-mid/20'
+              }`}
+            >
+              <div className="flex justify-between items-start">
+                <div className="flex-1">
+                  <div className="flex items-center space-x-3 mb-2">
+                    <h3 className="text-lg font-semibold text-neutral-dark">{doc.title}</h3>
+                    {!doc.readAt && (
+                      <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full">
+                        Nuevo
+                      </span>
+                    )}
+                    {getPriorityBadge(doc.priority)}
+                  </div>
+                  {doc.description && (
+                    <p className="text-sm text-gray-600 mb-3">{doc.description}</p>
+                  )}
+                  <div className="flex items-center space-x-4 text-sm text-gray-500">
+                    <span className="flex items-center">
+                      <File className="h-4 w-4 mr-1" />
+                      {getDocumentTypeLabel(doc.documentType)}
+                    </span>
+                    <span>
+                      De: {doc.sender?.name || 'Administración'}
+                    </span>
+                    <span>
+                      {doc.createdAt || doc.created_at 
+                        ? format(new Date(doc.createdAt || doc.created_at), "d 'de' MMMM, yyyy", { locale: es })
+                        : 'Fecha no disponible'
+                      }
+                    </span>
+                  </div>
+                </div>
+                <div className="flex items-center space-x-2 ml-4">
+                  <button
+                    onClick={() => {
+                      handleDownload(doc.id, doc.originalName);
+                      if (!doc.readAt) {
+                        handleMarkAsRead(doc.id);
+                      }
+                    }}
+                    className="p-2 text-brand-light hover:bg-brand-light/10 rounded-lg transition-colors"
+                    title="Descargar"
+                  >
+                    <Download className="h-5 w-5" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Upload Modal */}
+      {showUploadModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-xl font-bold text-neutral-dark">Subir Documento</h3>
+                <button
+                  onClick={() => setShowUploadModal(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <XCircle className="h-6 w-6" />
+                </button>
+              </div>
+
+              <form onSubmit={handleUpload} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Título *
+                  </label>
+                  <input
+                    type="text"
+                    value={uploadForm.title}
+                    onChange={(e) => setUploadForm({ ...uploadForm, title: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-brand-light focus:border-brand-light"
+                    placeholder="Ej: Justificante médico del 25/11"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Descripción
+                  </label>
+                  <textarea
+                    value={uploadForm.description}
+                    onChange={(e) => setUploadForm({ ...uploadForm, description: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-brand-light focus:border-brand-light"
+                    rows="3"
+                    placeholder="Información adicional sobre el documento..."
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Tipo de Documento *
+                    </label>
+                    <select
+                      value={uploadForm.documentType}
+                      onChange={(e) => setUploadForm({ ...uploadForm, documentType: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-brand-light focus:border-brand-light"
+                    >
+                      <option value="justificante">Justificante</option>
+                      <option value="baja_medica">Baja Médica</option>
+                      <option value="certificado">Certificado</option>
+                      <option value="otro">Otro</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Prioridad
+                    </label>
+                    <select
+                      value={uploadForm.priority}
+                      onChange={(e) => setUploadForm({ ...uploadForm, priority: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-brand-light focus:border-brand-light"
+                    >
+                      <option value="low">Baja</option>
+                      <option value="normal">Normal</option>
+                      <option value="high">Alta</option>
+                      <option value="urgent">Urgente</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Archivo *
+                  </label>
+                  <input
+                    type="file"
+                    onChange={handleFileChange}
+                    accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-brand-light focus:border-brand-light"
+                    required
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Formatos: PDF, Word, Imágenes (máx. 10MB)
+                  </p>
+                  {uploadForm.file && (
+                    <p className="text-sm text-green-600 mt-2">
+                      ✓ {uploadForm.file.name} ({(uploadForm.file.size / 1024 / 1024).toFixed(2)} MB)
+                    </p>
+                  )}
+                </div>
+
+                <div className="flex justify-end space-x-3 pt-4">
+                  <button
+                    type="button"
+                    onClick={() => setShowUploadModal(false)}
+                    className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+                    disabled={uploading}
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-2 bg-brand-light text-brand-cream rounded-lg hover:bg-brand-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={uploading}
+                  >
+                    {uploading ? 'Subiendo...' : 'Subir Documento'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -1,6 +1,6 @@
 # 📋 Novedades - Sistema JARANA v1.0.2
 
-## Versión 1.0.2 - 05 de Noviembre 2025
+## Versión 1.0.2 - 25 de Noviembre 2025
 
 ### 🎉 ¿Qué hay de nuevo?
 

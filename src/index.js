@@ -27,6 +27,8 @@ import advancedBreakRoutes from './routes/advancedBreaks.js';
 import vacationRoutes from './routes/vacations.js';
 import absenceCategoryRoutes from './routes/absenceCategories.js';
 import aiRoutes from './routes/ai.js';
+import aiConversationRoutes from './routes/aiConversations.js';
+import documentRoutes from './routes/documents.js';
 import embeddingService from './services/embeddingService.js';
 
 const app = express();
@@ -103,6 +105,8 @@ app.use('/api/advanced-breaks', advancedBreakRoutes);
 app.use('/api/vacations', vacationRoutes);
 app.use('/api/absence-categories', absenceCategoryRoutes);
 app.use('/api/ai', aiRoutes);
+app.use('/api/ai-conversations', aiConversationRoutes);
+app.use('/api/documents', documentRoutes);
 
 // Serve static files from React build (PRODUCTION)
 if (config.server.env === 'production') {

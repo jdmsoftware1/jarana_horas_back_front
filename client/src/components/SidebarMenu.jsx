@@ -14,7 +14,8 @@ import {
   FileText,
   Home,
   Brain,
-  Shield
+  Shield,
+  File
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -46,6 +47,7 @@ const SidebarMenu = ({ isAdmin = false, activeTab, onTabChange }) => {
     { id: 'vacations', icon: Shield, label: 'Vacaciones' },
     { id: 'absence-categories', icon: FileText, label: 'Categorías Ausencias' },
     { id: 'weekly', icon: FileText, label: 'Vista Semanal' },
+    { id: 'documents', icon: File, label: 'Documentos' },
     { id: 'ai-knowledge', icon: Brain, label: 'Gestión IA' },
     { id: 'settings', icon: Settings, label: 'Configuración' },
   ];

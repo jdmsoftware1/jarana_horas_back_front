@@ -1,0 +1,432 @@
+# 📋 Novedades - Sistema JARANA v1.0.4
+
+## Versión 1.0.4 - 25 de Noviembre 2025
+
+### 🎉 ¿Qué hay de nuevo?
+
+#### 1. 🎨 Mejoras Estéticas - Panel Lateral Integrado
+**¿Qué cambió?** El panel de navegación ahora está más integrado y moderno.
+
+**Mejoras visuales:**
+- Panel lateral rediseñado con mejor integración
+- Navegación más fluida y profesional
+- Diseño más limpio y coherente
+- Mejor experiencia de usuario en todas las pantallas
+
+---
+
+#### 2. 🧠 Asistente de IA con Permisos Diferenciados
+**¿Qué es?** La IA ahora tiene capacidades diferentes según tu rol.
+
+**Para Administradores:**
+- ✅ **Acceso completo**: Consulta información de todos los empleados
+- ✅ **Análisis avanzados**: Compara empleados, genera estadísticas del equipo
+- ✅ **Consultas globales**: "¿Quién llegó tarde esta semana?", "Muéstrame horas extra del equipo"
+- ✅ **Insights del sistema**: Analiza tendencias, detecta problemas, genera reportes
+- ✅ **Sin restricciones**: Pregunta lo que necesites sobre el software y empleados
+
+**Ejemplos de preguntas para Admin:**
+- "¿Qué empleados tienen más horas extra este mes?"
+- "Muéstrame un ranking de horas trabajadas"
+- "¿Quién llegó tarde esta semana?"
+- "Analiza el rendimiento del equipo"
+- "¿Cómo funciona el sistema de vacaciones?"
+
+**Para Empleados:**
+- ✅ **Información personal**: Solo acceso a tus propios datos
+- ✅ **Consultas privadas**: "¿Cuántas horas trabajé?", "¿Cuántos días de vacaciones me quedan?"
+- ✅ **Ayuda del sistema**: Cómo usar funcionalidades, solicitar vacaciones, etc.
+- 🔒 **Privacidad**: No puedes ver datos de otros empleados
+
+**Ejemplos de preguntas para Empleado:**
+- "¿Cuántas horas trabajé esta semana?"
+- "¿He fichado entrada hoy?"
+- "¿Cuántos días de vacaciones me quedan?"
+- "¿Cómo solicito vacaciones?"
+
+---
+
+#### 3. ⚡ Códigos de Empleado Simplificados
+**¿Qué cambió?** Los códigos de empleado ahora son mucho más simples y rápidos de usar.
+
+**Antes:** `EMP3556789` (10 caracteres, difícil de recordar)  
+**Ahora:** `EMP01`, `EMP02`, `EMP21` (5-6 caracteres, fácil de recordar)
+
+**Características:**
+- ✅ **Generación automática**: El sistema sugiere el próximo código disponible
+- ✅ **Pre-llenado**: En la app móvil, el campo ya viene con el código
+- ✅ **Visual en web**: Muestra claramente qué código se asignará
+- ✅ **Escalable**: Usa 2 dígitos (EMP01-EMP99), luego 3 (EMP100+)
+- ✅ **Compatibilidad**: Los empleados antiguos mantienen sus códigos
+
+**Beneficios:**
+- ⚡ **Más rápido**: Ya no necesitas escribir el código manualmente
+- 🎯 **Menos errores**: El sistema lo genera automáticamente
+- 💡 **Más simple**: Códigos cortos y secuenciales
+
+**Cómo funciona:**
+1. Abres el formulario de crear empleado
+2. El sistema muestra: "Código de empleado: **EMP21**"
+3. Completas nombre, email y PIN
+4. ¡Listo! El empleado se crea con código EMP21
+
+---
+
+### ✅ Nuevas Funcionalidades Implementadas
+
+#### 4. 💬 Historial de Conversaciones con la IA
+**¿Qué es?** Los administradores ahora pueden ver y gestionar el historial completo de chats con la IA.
+
+**Funcionalidades:**
+- ✅ **Ver historial completo**: Todas las conversaciones se guardan automáticamente
+- ✅ **Cargar conversaciones**: Haz clic en cualquier conversación para continuarla
+- ✅ **Borrar conversaciones**: Elimina conversaciones individuales o todas a la vez
+- ✅ **Nueva conversación**: Inicia un chat nuevo en cualquier momento
+- ✅ **Guardado automático**: Cada respuesta de la IA se guarda automáticamente
+- ✅ **Títulos automáticos**: Cada conversación tiene un título basado en el primer mensaje
+
+**Cómo usarlo:**
+1. Abre el chat de IA
+2. Haz clic en el icono de historial (📜) en la esquina superior derecha
+3. Verás todas tus conversaciones anteriores
+4. Haz clic en una para cargarla y continuarla
+5. Usa el botón de basura (🗑️) para eliminar conversaciones
+
+**Nota:** Esta funcionalidad está disponible **solo para administradores**. Los empleados no tienen acceso al historial.
+
+---
+
+#### 5. 📄 Soporte para PDF y Word en IA
+**¿Qué es?** La IA ahora puede leer documentos PDF y Word, no solo archivos .txt.
+
+**Formatos soportados:**
+- ✅ **.txt** - Archivos de texto plano
+- ✅ **.pdf** - Documentos PDF
+- ✅ **.docx** - Microsoft Word (nuevo formato)
+- ✅ **.doc** - Microsoft Word (formato antiguo)
+
+**Características:**
+- ✅ **Extracción automática**: El texto se extrae automáticamente de PDFs y Word
+- ✅ **Límite de tamaño**: 10MB máximo por archivo
+- ✅ **Procesamiento inteligente**: Divide documentos grandes en chunks para mejor rendimiento
+- ✅ **Validación**: Verifica formato y tamaño antes de subir
+
+**Beneficios:**
+- 📚 Sube manuales en PDF directamente
+- 📝 Carga políticas en Word sin convertir
+- 🚀 La IA aprende de cualquier formato
+- 💼 Más flexible y profesional
+
+**Cómo usarlo:**
+1. Ve a Admin Dashboard → Gestión IA
+2. Haz clic en "Subir Documento"
+3. Selecciona tu archivo (.txt, .pdf, .docx, .doc)
+4. El sistema lo procesará automáticamente
+5. Haz clic en "Recargar Base de Conocimiento"
+6. ¡La IA ya conoce el contenido!
+
+---
+
+#### 6. 📤 Sistema de Documentos Empleado → Admin
+**¿Qué es?** Los empleados ahora pueden subir documentos que el administrador debe revisar.
+
+**Tipos de documentos soportados:**
+- 🏥 **Bajas médicas**
+- 📝 **Justificantes** (retrasos, ausencias)
+- 🎓 **Certificados**
+- 📄 **Otros documentos**
+
+**Para Empleados:**
+- ✅ **Subir documentos**: PDF, Word, imágenes (máx. 10MB)
+- ✅ **Ver estado**: Pendiente, Revisado, Aprobado, Rechazado
+- ✅ **Historial completo**: Todos los documentos enviados
+- ✅ **Prioridades**: Normal, Alta, Urgente
+- ✅ **Descargar**: Recupera tus documentos cuando quieras
+
+**Para Administradores:**
+- ✅ **Recibir documentos**: Lista de pendientes ordenada por prioridad
+- ✅ **Revisar**: Aprobar, rechazar o marcar como revisado
+- ✅ **Añadir notas**: Comentarios sobre cada documento
+- ✅ **Descargar**: Acceso a todos los archivos
+- ✅ **Gestionar**: Eliminar documentos innecesarios
+
+**Flujo de trabajo:**
+1. Empleado sube documento (ej: baja médica)
+2. Admin recibe notificación
+3. Admin revisa y aprueba/rechaza
+4. Empleado ve el estado actualizado
+
+---
+
+#### 7. 📥 Sistema de Documentos Admin → Empleado
+**¿Qué es?** Los administradores pueden enviar documentos a empleados específicos o a todos.
+
+**Tipos de documentos:**
+- 💰 **Nóminas** mensuales
+- 📋 **Contratos** y anexos
+- 📜 **Políticas** de empresa
+- 📢 **Notificaciones** oficiales
+- 📄 **Otros documentos**
+
+**Para Administradores:**
+- ✅ **Enviar a uno o todos**: Selecciona destinatario específico o envía a todos
+- ✅ **Formatos múltiples**: PDF, Word, imágenes
+- ✅ **Prioridades**: Normal, Alta, Urgente
+- ✅ **Fecha de expiración**: Documentos con validez temporal
+- ✅ **Seguimiento**: Ve quién ha leído cada documento
+
+**Para Empleados:**
+- ✅ **Recibir documentos**: Notificación de nuevos documentos
+- ✅ **Descargar**: Guarda tus nóminas, contratos, etc.
+- ✅ **Marcar como leído**: Confirma recepción automáticamente
+- ✅ **Historial**: Accede a todos tus documentos recibidos
+- ✅ **Filtros**: Por tipo, fecha, prioridad
+
+**Ejemplos de uso:**
+- **Nómina mensual**: Admin envía → Empleado descarga y confirma
+- **Contrato actualizado**: Admin comparte → Empleado lee y guarda
+- **Política nueva**: Admin distribuye a todos → Empleados leen
+- **Notificación urgente**: Admin envía con prioridad alta → Empleados reciben alerta
+
+**Características especiales:**
+- 🔔 **Notificaciones**: Los empleados ven cuántos documentos nuevos tienen
+- 📊 **Estadísticas**: Admin ve quién ha leído cada documento
+- 🗂️ **Organización**: Documentos ordenados por fecha y prioridad
+- 🔒 **Seguridad**: Solo el destinatario puede ver sus documentos
+
+---
+
+### 🔧 Mejoras y Correcciones
+
+#### ✅ Mejoras Implementadas
+- **Panel lateral**: Diseño más integrado y profesional
+- **IA para Admin**: Acceso completo sin restricciones
+- **IA para Empleado**: Información personal y privada
+- **Códigos de empleado**: Generación automática y simplificada
+- **Endpoint nuevo**: `/api/admin/next-employee-code` para obtener próximo código
+- **Frontend web**: Campo informativo con código sugerido
+- **App móvil**: Pre-llenado automático del código
+
+#### 🐛 Errores Corregidos
+- **Admin Dashboard - Registros**: Corregido error que mostraba pantalla en blanco
+  - Error: `LogIn is not defined` - Faltaban imports de iconos
+  - Solución: Agregados iconos `LogIn` y `LogOut` a los imports
+  - Error: Uso incorrecto de `React.useEffect` 
+  - Solución: Cambiado a `useEffect` directamente
+- **Portal Empleado - Vacaciones**: Corregidos múltiples errores
+  - Error: `Invalid time value` al mostrar fechas de vacaciones
+  - Causa: Fechas null o inválidas en la base de datos
+  - Solución: Agregada validación de fechas antes de formatear
+  - Ahora muestra "N/A" para fechas inválidas en lugar de crashear
+- **Portal Empleado - Acciones Rápidas**: Todos los botones ahora funcionan correctamente
+  - "Solicitar Vacaciones" → Cambia a la pestaña de vacaciones
+  - "Chat con IA" → Abre el chat de IA
+  - "Fichar Entrada/Salida" → Redirige al kiosco
+- **Imports**: Reorganizados correctamente en EmployeePortal y AdminDashboard
+
+#### ✨ Mejoras de Rendimiento
+- Consultas optimizadas para códigos de empleado
+- Carga más rápida del próximo código disponible
+- Mejor manejo de concurrencia en creación de empleados
+
+---
+
+### 📖 ¿Cómo Empezar?
+
+#### Para Administradores:
+
+**1. Prueba las nuevas capacidades de IA**
+```
+Pregunta: "¿Qué empleados tienen más horas extra este mes?"
+Pregunta: "Muéstrame un ranking de horas trabajadas"
+Pregunta: "¿Quién llegó tarde esta semana?"
+```
+
+**2. Crea empleados más rápido**
+- Ve a Empleados → Crear Nuevo
+- Observa el código sugerido (ej: EMP21)
+- Solo completa nombre, email y PIN
+- ¡Listo en segundos!
+
+**3. Explora el nuevo panel lateral**
+- Navegación más fluida
+- Diseño más moderno
+- Mejor organización
+
+#### Para Empleados:
+
+**1. Usa la IA para tus consultas personales**
+```
+Pregunta: "¿Cuántas horas trabajé esta semana?"
+Pregunta: "¿Cuántos días de vacaciones me quedan?"
+Pregunta: "¿Cómo solicito vacaciones?"
+```
+
+**2. Acceso más rápido**
+- El código de empleado ahora es más simple
+- Formato: EMP + 2 dígitos (ej: EMP21)
+- Más fácil de recordar y escribir
+
+---
+
+### 💡 Consejos y Trucos
+
+#### Para Administradores:
+
+**Aprovecha la IA al máximo:**
+1. Haz preguntas complejas: "Compara las horas de Juan y María este mes"
+2. Solicita análisis: "Analiza el rendimiento del equipo"
+3. Detecta problemas: "¿Hay empleados con déficit de horas?"
+4. Pide estadísticas: "Muéstrame las horas extra del equipo"
+
+**Códigos de empleado:**
+- El sistema siempre sugiere el siguiente disponible
+- Puedes modificarlo si es necesario
+- Los códigos antiguos se mantienen sin cambios
+
+#### Para Empleados:
+
+**Usa la IA como tu asistente personal:**
+1. Consulta tus datos: "¿Cuántas horas trabajé hoy?"
+2. Verifica tu horario: "¿Cuál es mi horario de mañana?"
+3. Gestiona vacaciones: "¿Cuántos días me quedan?"
+4. Aprende a usar el sistema: "¿Cómo ficho entrada?"
+
+---
+
+### ⚙️ Requisitos Técnicos
+
+**Para usar las nuevas funcionalidades:**
+- Navegador actualizado (Chrome, Edge, Firefox, Safari)
+- Conexión a internet estable
+- OpenAI API Key configurada (solo para IA)
+
+**Compatibilidad:**
+- ✅ Web (Chrome, Edge, Firefox, Safari)
+- ✅ App Móvil (iOS y Android)
+- ✅ Todos los dispositivos
+
+---
+
+### 🆘 ¿Necesitas Ayuda?
+
+- **Usa el Chat de IA**: Pregúntale directamente según tu rol
+- **Documentación**: Revisa los archivos CAMBIOS_IA_PERMISOS.md y CAMBIOS_CODIGOS_EMPLEADO.md
+- **Soporte**: Contacta con el administrador del sistema
+
+---
+
+### 📊 Estadísticas de la Versión
+
+**Archivos modificados:** 6
+- Backend: 3 archivos (routes, config)
+- Frontend Web: 1 archivo
+- App Móvil: 1 archivo
+- Documentación: 2 archivos nuevos
+
+**Nuevas funcionalidades:** 3
+- Permisos de IA diferenciados
+- Códigos de empleado simplificados
+- Panel lateral mejorado
+
+**Próximas funcionalidades:** 4
+- Historial de conversaciones IA
+- Soporte PDF/Word
+- Sistema documentos Empleado → Admin
+- Sistema documentos Admin → Empleado
+
+---
+
+### 🔜 Roadmap v1.0.4
+
+**Planificado para próxima versión:**
+- Notificaciones en tiempo real
+- Dashboard con gráficos avanzados
+- Exportación de reportes personalizados
+- Integración con calendarios externos
+- App móvil con modo offline
+
+---
+
+**Versión:** 1.0.4  
+**Fecha:** 25/11/2025  
+**Estado:** ✅ Estable (Features en desarrollo)
+
+---
+
+## 📝 Notas de Desarrollo
+
+### Cambios Técnicos Importantes
+
+**Backend:**
+- Nuevo modelo: `AIConversation` para historial de conversaciones
+- Nuevo modelo: `Document` para sistema de documentos bidireccional
+- Nuevas rutas: `/api/ai-conversations` (CRUD completo)
+- Nuevas rutas: `/api/documents` (upload, download, review, delete)
+- Endpoint: `GET /api/admin/next-employee-code`
+- Soporte PDF/Word: `pdf-parse` y `mammoth` integrados
+- Multer configurado para documentos (10MB máx)
+- Permisos de IA implementados en `enhancedAIService.js`
+- Sistema de revisión de documentos con estados
+- Asociaciones complejas: sender, recipient, reviewer
+
+**Frontend:**
+- Componente `AIChat` mejorado con historial
+- Modal de crear empleado con código sugerido
+- Validación de archivos PDF/Word en upload
+- Gestión de documentos (pendiente implementación UI)
+
+**App Móvil:**
+- Pre-llenado automático del código
+- Placeholder dinámico
+- Sistema de documentos (pendiente implementación UI)
+
+**Base de Datos:**
+- Tabla `ai_conversations` con mensajes JSON
+- Tabla `documents` con sistema de estados
+- Índices optimizados para búsquedas
+- Carpeta `/uploads/documents` para archivos
+
+**Librerías Nuevas:**
+- `pdf-parse@1.1.1` - Extracción de texto de PDFs
+- `mammoth@1.6.0` - Extracción de texto de Word
+
+**Documentación:**
+- `CAMBIOS_IA_PERMISOS.md`: Guía completa de permisos IA
+- `CAMBIOS_CODIGOS_EMPLEADO.md`: Guía de códigos simplificados
+
+---
+
+### 🎯 Próximos Pasos para Desarrolladores
+
+**Implementaciones Completadas en Backend:**
+1. ✅ **Historial de conversaciones IA** - Modelo y rutas completas
+2. ✅ **Soporte PDF/Word** - Integrado en embeddingService
+3. ✅ **Sistema de documentos bidireccional** - Modelo y rutas completas
+
+**Pendiente - Frontend/UI:**
+1. **Interfaz de Documentos para Empleados**
+   - Componente para subir documentos
+   - Lista de documentos enviados con estados
+   - Vista de documentos recibidos del admin
+   - Botones de descarga y confirmación de lectura
+
+2. **Interfaz de Documentos para Admin**
+   - Panel de documentos pendientes
+   - Sistema de revisión (aprobar/rechazar)
+   - Formulario para enviar documentos a empleados
+   - Estadísticas de documentos
+
+3. **Notificaciones**
+   - Badge con contador de documentos nuevos
+   - Alertas de documentos urgentes
+   - Notificaciones en tiempo real (opcional)
+
+4. **App Móvil - Documentos**
+   - Pantalla de subida de documentos
+   - Lista de documentos del empleado
+   - Visualizador de documentos recibidos
+
+---
+
+**Desarrollado con ❤️ para JARANA**

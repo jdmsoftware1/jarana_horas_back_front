@@ -85,6 +85,8 @@ jspm_packages/
 # Storybook build outputs
 .out
 .storybook-out
+.pdf
+*.pdf
 
 # Temporary folders
 tmp/
