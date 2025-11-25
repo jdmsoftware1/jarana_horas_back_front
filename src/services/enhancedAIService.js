@@ -25,7 +25,7 @@ class EnhancedAIService {
     console.log('✅ Enhanced AI Service inicializado');
   }
 
-  async chat(message, userId = null, conversationHistory = []) {
+  async chat(message, userId = null, userRole = 'employee', conversationHistory = []) {
     if (!this.initialized) {
       await this.initialize();
     }
@@ -42,13 +42,13 @@ class EnhancedAIService {
       const relevantDocs = await embeddingService.searchSimilarDocuments(message, 3);
       
       // 2. Obtener datos de la base de datos si es necesario
-      const dbContext = await this.getDatabaseContext(message, conversationHistory);
+      const dbContext = await this.getDatabaseContext(message, conversationHistory, userRole, userId);
       
       // 3. Construir contexto enriquecido
       let context = this.buildContext(relevantDocs, dbContext);
       
       // 4. Generar respuesta con GPT (con historial)
-      const response = await this.generateResponse(message, context, conversationHistory);
+      const response = await this.generateResponse(message, context, conversationHistory, userRole);
       
       return {
         response: response,
@@ -87,7 +87,7 @@ class EnhancedAIService {
     return context;
   }
 
-  async getDatabaseContext(message, conversationHistory = []) {
+  async getDatabaseContext(message, conversationHistory = [], userRole = 'employee', userId = null) {
     const messageLower = message.toLowerCase();
     let context = '';
 
@@ -120,7 +120,7 @@ class EnhancedAIService {
       if (messageLower.includes('horario') || messageLower.includes('turno') || 
           messageLower.includes('cuándo trabaja') || messageLower.includes('cuando trabaja') ||
           messageLower.includes('qué días') || messageLower.includes('que dias')) {
-        context += await this.getScheduleContext(message, messageLower, employeeFromHistory);
+        context += await this.getScheduleContext(message, messageLower, employeeFromHistory, userRole, userId);
       }
       
       // Detectar consultas sobre horas trabajadas
@@ -128,18 +128,33 @@ class EnhancedAIService {
           messageLower.includes('extra') || messageLower.includes('déficit') ||
           messageLower.includes('deficit') || messageLower.includes('cumplimiento') ||
           messageLower.includes('mes') || messageLower.includes('semana') || messageLower.includes('hoy')) {
-        context += await this.getHoursContext(message, messageLower, employeeFromHistory);
+        context += await this.getHoursContext(message, messageLower, employeeFromHistory, userRole, userId);
       }
       
       // Detectar qué tipo de información se solicita
       if (messageLower.includes('empleado') || messageLower.includes('trabajador')) {
-        const employees = await Employee.findAll({
-          where: { isActive: true },
-          attributes: ['id', 'name', 'employeeCode', 'email', 'role'],
-          limit: 50
-        });
-        context += `Total de empleados activos: ${employees.length}\n`;
-        context += `Empleados: ${employees.map(e => `${e.name} (${e.employeeCode})`).join(', ')}\n\n`;
+        // Para administradores: mostrar todos los empleados
+        // Para empleados: solo mostrar su propia información
+        if (userRole === 'admin' || userRole === 'supervisor') {
+          const employees = await Employee.findAll({
+            where: { isActive: true },
+            attributes: ['id', 'name', 'employeeCode', 'email', 'role'],
+            limit: 50
+          });
+          context += `Total de empleados activos: ${employees.length}\n`;
+          context += `Empleados: ${employees.map(e => `${e.name} (${e.employeeCode})`).join(', ')}\n\n`;
+        } else if (userId) {
+          // Empleado: solo su información
+          const employee = await Employee.findByPk(userId, {
+            attributes: ['id', 'name', 'employeeCode', 'email', 'role']
+          });
+          if (employee) {
+            context += `Tu información:\n`;
+            context += `- Nombre: ${employee.name}\n`;
+            context += `- Código: ${employee.employeeCode}\n`;
+            context += `- Email: ${employee.email}\n\n`;
+          }
+        }
       }
 
       if (messageLower.includes('tarde') || messageLower.includes('retraso') || messageLower.includes('puntualidad')) {
@@ -261,43 +276,89 @@ class EnhancedAIService {
     return context;
   }
 
-  async generateResponse(message, context, conversationHistory = []) {
-    const systemPrompt = `Eres un asistente de IA para el sistema de gestión de empleados JARANA.
+  async generateResponse(message, context, conversationHistory = [], userRole = 'employee') {
+    // Generar prompt diferente según el rol
+    let systemPrompt;
+    
+    if (userRole === 'admin' || userRole === 'supervisor') {
+      // Prompt para administradores: más abierto y completo
+      systemPrompt = `Eres un asistente de IA avanzado para el sistema de gestión de empleados JARANA.
 
-Tu trabajo es ayudar a responder preguntas sobre:
-- Empleados y su información
-- Registros de entrada/salida
-- **Horarios asignados** (qué días trabaja cada empleado, horarios de entrada/salida)
-- Plantillas de horario
-- Vacaciones y ausencias
-- Estadísticas y reportes
-- **Horas trabajadas** (reales vs estimadas, horas extra, déficits)
+Como ADMINISTRADOR, tienes acceso completo a toda la información del sistema y puedes responder preguntas sobre:
+- 👥 **Todos los empleados**: información personal, roles, contactos
+- 📊 **Análisis y estadísticas**: rendimiento, comparativas, tendencias
+- ⏰ **Registros de entrada/salida**: de cualquier empleado o equipo
+- 📅 **Horarios asignados**: turnos, plantillas, modificaciones
+- 🏖️ **Vacaciones y ausencias**: solicitudes, aprobaciones, balances
+- 📈 **Horas trabajadas**: reales vs estimadas, horas extra, déficits de todos los empleados
+- 🔍 **Reportes personalizados**: cualquier consulta sobre el sistema
+- ⚠️ **Alertas y anomalías**: retrasos, ausencias, patrones irregulares
+
+CAPACIDADES AMPLIADAS:
+- Responde cualquier pregunta sobre empleados, datos, estadísticas o funcionamiento del software
+- Proporciona análisis comparativos entre empleados
+- Genera insights y recomendaciones basadas en los datos
+- Explica funcionalidades del sistema
+- Ayuda con la toma de decisiones administrativas
+- Ofrece información detallada sin restricciones
 
 IMPORTANTE:
-- Usa la información del contexto proporcionado para dar respuestas precisas
+- Usa toda la información del contexto proporcionado para dar respuestas completas y precisas
 - **MANTÉN CONTEXTO**: Si el usuario pregunta "¿y este mes?" después de hablar de un empleado, asume que se refiere al mismo empleado
-- Si no tienes información suficiente, dilo claramente
-- Sé conciso y directo
-- Usa formato claro con listas cuando sea apropiado
+- Sé proactivo: si detectas información relevante adicional, menciónala
+- Usa formato claro con listas, tablas o estructuras cuando sea apropiado
 - Responde siempre en español
-- Para consultas de horas, presenta la información de forma clara y estructurada
-- Usa emojis cuando sea apropiado: ✅ (horas extra), ⚠️ (déficit), 📊 (estadísticas)
+- Usa emojis para mejorar la claridad: ✅ (positivo), ⚠️ (alerta), 📊 (estadísticas), 👤 (empleado)
 
 EJEMPLOS DE CONSULTAS QUE PUEDES RESPONDER:
-- "¿Qué horario tiene David esta semana?"
-- "¿Cuándo trabaja María?"
-- "¿Qué días libra Juan?"
-- "¿Quién trabaja 40 horas a la semana?"
-- "¿Quién tiene turno de mañana?"
-- "¿Quién tiene turno partido?"
-- "¿Cuántas horas trabajó Juan hoy?"
-- "¿Quién hizo más horas esta semana?"
-- "¿Qué empleados tienen horas extra este mes?"
-- "¿Hay empleados con déficit de horas?"
-- "Muéstrame el ranking de horas trabajadas"
+- "¿Qué empleados llegaron tarde esta semana?"
+- "Muéstrame las estadísticas de horas trabajadas del equipo"
+- "¿Quién tiene más horas extra este mes?"
+- "Analiza el rendimiento de todos los empleados"
+- "¿Cómo funciona el sistema de vacaciones?"
+- "Dame un resumen del estado del equipo"
+- "¿Qué empleados tienen déficit de horas?"
+- "Explícame cómo asignar horarios"
 
 Contexto disponible:
 ${context}`;
+    } else {
+      // Prompt para empleados: restringido a información personal
+      systemPrompt = `Eres un asistente de IA personal para el sistema de gestión de empleados JARANA.
+
+Como EMPLEADO, puedes consultar tu información personal:
+- 👤 **Tu información**: datos personales, código de empleado
+- ⏰ **Tus registros**: entradas y salidas
+- 📅 **Tu horario**: turnos asignados, días laborables
+- 🏖️ **Tus vacaciones**: solicitudes, días disponibles, estado
+- 📊 **Tus horas trabajadas**: horas reales, estimadas, extras o déficit
+- ❓ **Ayuda general**: cómo usar el sistema, funcionalidades disponibles
+
+RESTRICCIONES:
+- Solo puedes acceder a TU información personal
+- No puedes ver datos de otros empleados
+- No tienes acceso a estadísticas generales del equipo
+
+IMPORTANTE:
+- Usa la información del contexto proporcionado para dar respuestas precisas sobre TU información
+- Si preguntas sobre otros empleados, te recordaré que solo puedes ver tus propios datos
+- Sé conciso y directo
+- Usa formato claro con listas cuando sea apropiado
+- Responde siempre en español
+- Usa emojis cuando sea apropiado: ✅ (positivo), ⚠️ (alerta), 📊 (estadísticas)
+
+EJEMPLOS DE CONSULTAS QUE PUEDES RESPONDER:
+- "¿Cuántas horas trabajé esta semana?"
+- "¿He fichado entrada hoy?"
+- "¿Cuál es mi horario de mañana?"
+- "¿Cuántos días de vacaciones me quedan?"
+- "Quiero solicitar vacaciones del 15 al 20 de enero"
+- "¿Tengo horas extra este mes?"
+- "¿Cómo solicito vacaciones?"
+
+Contexto disponible:
+${context}`;
+    }
 
     // Construir array de mensajes incluyendo historial
     const messages = [
@@ -323,7 +384,7 @@ ${context}`;
     return completion.choices[0].message.content;
   }
 
-  async getHoursContext(message, messageLower, employeeFromHistory = null) {
+  async getHoursContext(message, messageLower, employeeFromHistory = null, userRole = 'employee', userId = null) {
     let context = '';
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -332,11 +393,23 @@ ${context}`;
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
     try {
-      // Obtener todos los empleados activos
-      const employees = await Employee.findAll({
-        where: { isActive: true },
-        attributes: ['id', 'name', 'employeeCode']
-      });
+      // Obtener empleados según el rol
+      let employees;
+      if (userRole === 'admin' || userRole === 'supervisor') {
+        // Administradores pueden ver todos los empleados
+        employees = await Employee.findAll({
+          where: { isActive: true },
+          attributes: ['id', 'name', 'employeeCode']
+        });
+      } else if (userId) {
+        // Empleados solo pueden ver su propia información
+        const employee = await Employee.findByPk(userId, {
+          attributes: ['id', 'name', 'employeeCode']
+        });
+        employees = employee ? [employee] : [];
+      } else {
+        employees = [];
+      }
 
       // Función helper para calcular horas trabajadas
       const calculateHours = async (employeeId, startDate, endDate) => {
@@ -419,6 +492,11 @@ ${context}`;
             break;
           }
         }
+      }
+      
+      // Para empleados, forzar que solo vean su propia información
+      if (userRole === 'employee' && userId && specificEmployee && specificEmployee.id !== userId) {
+        specificEmployee = employees[0]; // Forzar a su propio empleado
       }
 
       // Detectar período (hoy, semana, mes)
@@ -557,15 +635,27 @@ ${context}`;
     return context;
   }
 
-  async getScheduleContext(message, messageLower, employeeFromHistory = null) {
+  async getScheduleContext(message, messageLower, employeeFromHistory = null, userRole = 'employee', userId = null) {
     let context = '';
 
     try {
-      // Obtener todos los empleados activos
-      const employees = await Employee.findAll({
-        where: { isActive: true },
-        attributes: ['id', 'name', 'employeeCode']
-      });
+      // Obtener empleados según el rol
+      let employees;
+      if (userRole === 'admin' || userRole === 'supervisor') {
+        // Administradores pueden ver todos los empleados
+        employees = await Employee.findAll({
+          where: { isActive: true },
+          attributes: ['id', 'name', 'employeeCode']
+        });
+      } else if (userId) {
+        // Empleados solo pueden ver su propia información
+        const employee = await Employee.findByPk(userId, {
+          attributes: ['id', 'name', 'employeeCode']
+        });
+        employees = employee ? [employee] : [];
+      } else {
+        employees = [];
+      }
 
       // Detectar si pregunta por un empleado específico
       let specificEmployee = employeeFromHistory;
@@ -578,6 +668,11 @@ ${context}`;
             break;
           }
         }
+      }
+      
+      // Para empleados, forzar que solo vean su propia información
+      if (userRole === 'employee' && userId && specificEmployee && specificEmployee.id !== userId) {
+        specificEmployee = employees[0]; // Forzar a su propio empleado
       }
 
       const daysOfWeek = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];

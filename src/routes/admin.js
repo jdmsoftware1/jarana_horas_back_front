@@ -56,17 +56,50 @@ router.post('/employees',
       }
 
       // Generar código de empleado único
-      const lastEmployee = await Employee.findOne({
-        order: [['createdAt', 'DESC']]
-      });
-      
+      // Obtener el último código numérico para cada tipo
       let employeeCode;
       if (role === 'admin') {
-        const adminCount = await Employee.count({ where: { role: 'admin' } });
-        employeeCode = `ADM${String(adminCount + 1).padStart(3, '0')}`;
+        // Para admins, buscar el último código ADM
+        const lastAdmin = await Employee.findOne({
+          where: { 
+            role: 'admin',
+            employeeCode: { [sequelize.Op.like]: 'ADM%' }
+          },
+          order: [['employeeCode', 'DESC']]
+        });
+        
+        let nextNumber = 1;
+        if (lastAdmin && lastAdmin.employeeCode) {
+          const lastNumber = parseInt(lastAdmin.employeeCode.replace('ADM', ''));
+          if (!isNaN(lastNumber)) {
+            nextNumber = lastNumber + 1;
+          }
+        }
+        
+        // Usar 2 dígitos si es menor a 100, 3 si es mayor
+        const padding = nextNumber < 100 ? 2 : 3;
+        employeeCode = `ADM${String(nextNumber).padStart(padding, '0')}`;
       } else {
-        const empCount = await Employee.count({ where: { role: 'employee' } });
-        employeeCode = `EMP${String(empCount + 1).padStart(3, '0')}`;
+        // Para empleados, buscar el último código EMP
+        const lastEmployee = await Employee.findOne({
+          where: { 
+            role: 'employee',
+            employeeCode: { [sequelize.Op.like]: 'EMP%' }
+          },
+          order: [['employeeCode', 'DESC']]
+        });
+        
+        let nextNumber = 1;
+        if (lastEmployee && lastEmployee.employeeCode) {
+          const lastNumber = parseInt(lastEmployee.employeeCode.replace('EMP', ''));
+          if (!isNaN(lastNumber)) {
+            nextNumber = lastNumber + 1;
+          }
+        }
+        
+        // Usar 2 dígitos si es menor a 100, 3 si es mayor
+        const padding = nextNumber < 100 ? 2 : 3;
+        employeeCode = `EMP${String(nextNumber).padStart(padding, '0')}`;
       }
 
       // Generar secreto TOTP
@@ -341,6 +374,45 @@ router.get('/system-info', async (req, res) => {
 
   } catch (error) {
     console.error('Error fetching system info:', error);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
+// GET /api/admin/next-employee-code - Obtener el próximo código de empleado disponible
+router.get('/next-employee-code', async (req, res) => {
+  try {
+    const { role = 'employee' } = req.query;
+    
+    let prefix = role === 'admin' ? 'ADM' : 'EMP';
+    
+    // Buscar el último código para el rol especificado
+    const lastEmployee = await Employee.findOne({
+      where: { 
+        role: role,
+        employeeCode: { [sequelize.Op.like]: `${prefix}%` }
+      },
+      order: [['employeeCode', 'DESC']]
+    });
+    
+    let nextNumber = 1;
+    if (lastEmployee && lastEmployee.employeeCode) {
+      const lastNumber = parseInt(lastEmployee.employeeCode.replace(prefix, ''));
+      if (!isNaN(lastNumber)) {
+        nextNumber = lastNumber + 1;
+      }
+    }
+    
+    // Usar 2 dígitos si es menor a 100, 3 si es mayor
+    const padding = nextNumber < 100 ? 2 : 3;
+    const nextCode = `${prefix}${String(nextNumber).padStart(padding, '0')}`;
+    
+    res.json({ 
+      nextCode,
+      prefix,
+      number: nextNumber
+    });
+  } catch (error) {
+    console.error('Error getting next employee code:', error);
     res.status(500).json({ error: 'Error interno del servidor' });
   }
 });

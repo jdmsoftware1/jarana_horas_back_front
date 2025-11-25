@@ -7,6 +7,7 @@ import AdminDashboard from './pages/AdminDashboard';
 import EmployeeKioskPage from './pages/EmployeeKioskPage';
 import EmployeePortal from './pages/EmployeePortal';
 import AuthCallback from './pages/AuthCallback';
+import CalendarPage from './pages/employee/CalendarPage';
 import LoadingSpinner from './components/LoadingSpinner';
 
 // Componente para proteger rutas que requieren autenticación
@@ -54,6 +55,7 @@ const AppRoutes = () => {
       {/* Public Routes - No requieren autenticación */}
       <Route path="/employee-kiosk" element={<EmployeeKioskPage />} />
       <Route path="/employee-portal" element={<EmployeePortal />} />
+      <Route path="/employee-calendar" element={<CalendarPage />} />
       
       {/* 404 */}
       <Route 

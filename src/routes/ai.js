@@ -89,7 +89,7 @@ router.get('/anomalies-summary', checkAIUtils, async (req, res) => {
 // Enhanced chat endpoint with embeddings and database access
 router.post('/chat', checkAIChat, async (req, res) => {
   try {
-    const { message, userId, conversationHistory } = req.body;
+    const { message, userId, userRole, conversationHistory } = req.body;
     
     if (!message) {
       return res.status(400).json({ 
@@ -97,8 +97,8 @@ router.post('/chat', checkAIChat, async (req, res) => {
       });
     }
     
-    // Usar el servicio mejorado de IA con historial de conversación
-    const response = await enhancedAIService.chat(message, userId, conversationHistory);
+    // Usar el servicio mejorado de IA con historial de conversación y rol de usuario
+    const response = await enhancedAIService.chat(message, userId, userRole, conversationHistory);
     
     res.json(response);
   } catch (error) {
