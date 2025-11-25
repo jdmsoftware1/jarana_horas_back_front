@@ -14,7 +14,12 @@ import {
   XCircle,
   Plus,
   Filter,
-  Download
+  Download,
+  Upload,
+  Eye,
+  Trash2,
+  File,
+  CheckCircle2
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -221,6 +226,7 @@ const EmployeePortal = () => {
     { id: 'calendar', label: 'Calendario', icon: Calendar },
     { id: 'records', label: 'Mis Fichajes', icon: Clock },
     { id: 'vacations', label: 'Vacaciones', icon: MessageCircle },
+    { id: 'documents', label: 'Documentos', icon: File },
     { id: 'reports', label: 'Reportes', icon: FileText }
   ];
 
@@ -289,6 +295,7 @@ const EmployeePortal = () => {
         {activeTab === 'calendar' && <EmployeeCalendar employee={employee} />}
         {activeTab === 'records' && <RecordsContent employee={employee} />}
         {activeTab === 'vacations' && <VacationsContent employee={employee} />}
+        {activeTab === 'documents' && <DocumentsContent employee={employee} />}
         {activeTab === 'reports' && <ReportsContent employee={employee} />}
       </div>
 
@@ -1568,6 +1575,493 @@ const ReportsContent = ({ employee }) => {
           )}
         </div>
       </div>
+    </div>
+  );
+};
+
+// ============================================
+// DOCUMENTS CONTENT
+// ============================================
+
+const DocumentsContent = ({ employee }) => {
+  const [view, setView] = useState('received'); // 'received' or 'sent'
+  const [sentDocuments, setSentDocuments] = useState([]);
+  const [receivedDocuments, setReceivedDocuments] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [showUploadModal, setShowUploadModal] = useState(false);
+
+  // Form state
+  const [uploadForm, setUploadForm] = useState({
+    title: '',
+    description: '',
+    documentType: 'justificante',
+    priority: 'normal',
+    file: null
+  });
+
+  useEffect(() => {
+    loadDocuments();
+  }, [view]);
+
+  const loadDocuments = async () => {
+    setLoading(true);
+    try {
+      if (view === 'sent') {
+        const response = await authenticatedFetch(`${getApiUrl()}/documents/employee-to-admin/my-documents`);
+        if (response.ok) {
+          const data = await response.json();
+          setSentDocuments(data);
+        }
+      } else {
+        const response = await authenticatedFetch(`${getApiUrl()}/documents/admin-to-employee/my-documents`);
+        if (response.ok) {
+          const data = await response.json();
+          setReceivedDocuments(data);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading documents:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      // Verificar tamaño (10MB máx)
+      if (file.size > 10 * 1024 * 1024) {
+        alert('El archivo es demasiado grande. Máximo 10MB');
+        return;
+      }
+      setUploadForm({ ...uploadForm, file });
+    }
+  };
+
+  const handleUpload = async (e) => {
+    e.preventDefault();
+    
+    if (!uploadForm.file || !uploadForm.title) {
+      alert('Por favor completa todos los campos requeridos');
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', uploadForm.file);
+      formData.append('title', uploadForm.title);
+      formData.append('description', uploadForm.description);
+      formData.append('documentType', uploadForm.documentType);
+      formData.append('priority', uploadForm.priority);
+
+      const response = await authenticatedFetch(`${getApiUrl()}/documents/employee-to-admin`, {
+        method: 'POST',
+        body: formData
+      });
+
+      if (response.ok) {
+        alert('Documento subido correctamente');
+        setShowUploadModal(false);
+        setUploadForm({
+          title: '',
+          description: '',
+          documentType: 'justificante',
+          priority: 'normal',
+          file: null
+        });
+        setView('sent');
+        loadDocuments();
+      } else {
+        const error = await response.json();
+        alert(`Error: ${error.error || 'No se pudo subir el documento'}`);
+      }
+    } catch (error) {
+      console.error('Error uploading document:', error);
+      alert('Error al subir el documento');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleDownload = async (documentId, originalName) => {
+    try {
+      const response = await authenticatedFetch(`${getApiUrl()}/documents/${documentId}/download`);
+      if (response.ok) {
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = originalName;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+      } else {
+        alert('Error al descargar el documento');
+      }
+    } catch (error) {
+      console.error('Error downloading document:', error);
+      alert('Error al descargar el documento');
+    }
+  };
+
+  const handleMarkAsRead = async (documentId) => {
+    try {
+      const response = await authenticatedFetch(`${getApiUrl()}/documents/${documentId}/mark-read`, {
+        method: 'PATCH'
+      });
+      if (response.ok) {
+        loadDocuments();
+      }
+    } catch (error) {
+      console.error('Error marking as read:', error);
+    }
+  };
+
+  const getStatusBadge = (status) => {
+    const badges = {
+      pending: { color: 'bg-yellow-100 text-yellow-800', label: 'Pendiente', icon: Clock },
+      reviewed: { color: 'bg-blue-100 text-blue-800', label: 'Revisado', icon: Eye },
+      approved: { color: 'bg-green-100 text-green-800', label: 'Aprobado', icon: CheckCircle2 },
+      rejected: { color: 'bg-red-100 text-red-800', label: 'Rechazado', icon: XCircle }
+    };
+    
+    const badge = badges[status] || badges.pending;
+    const Icon = badge.icon;
+    
+    return (
+      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${badge.color}`}>
+        <Icon className="h-3 w-3 mr-1" />
+        {badge.label}
+      </span>
+    );
+  };
+
+  const getPriorityBadge = (priority) => {
+    const badges = {
+      low: { color: 'bg-gray-100 text-gray-800', label: 'Baja' },
+      normal: { color: 'bg-blue-100 text-blue-800', label: 'Normal' },
+      high: { color: 'bg-orange-100 text-orange-800', label: 'Alta' },
+      urgent: { color: 'bg-red-100 text-red-800', label: 'Urgente' }
+    };
+    
+    const badge = badges[priority] || badges.normal;
+    
+    return (
+      <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${badge.color}`}>
+        {badge.label}
+      </span>
+    );
+  };
+
+  const getDocumentTypeLabel = (type) => {
+    const types = {
+      baja_medica: 'Baja Médica',
+      justificante: 'Justificante',
+      certificado: 'Certificado',
+      nomina: 'Nómina',
+      contrato: 'Contrato',
+      politica: 'Política',
+      notificacion: 'Notificación',
+      otro: 'Otro'
+    };
+    return types[type] || type;
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex justify-between items-center">
+        <div>
+          <h2 className="text-2xl font-bold text-neutral-dark">Documentos</h2>
+          <p className="text-brand-medium mt-1">Gestiona tus documentos y comunicaciones</p>
+        </div>
+        <button
+          onClick={() => setShowUploadModal(true)}
+          className="flex items-center space-x-2 px-4 py-2 bg-brand-light text-brand-cream rounded-lg hover:bg-brand-medium transition-colors"
+        >
+          <Upload className="h-4 w-4" />
+          <span>Subir Documento</span>
+        </button>
+      </div>
+
+      {/* View Tabs */}
+      <div className="bg-white rounded-xl shadow-sm border border-neutral-mid/20 p-1 inline-flex">
+        <button
+          onClick={() => setView('received')}
+          className={`px-4 py-2 rounded-lg transition-colors ${
+            view === 'received'
+              ? 'bg-brand-light text-brand-cream'
+              : 'text-neutral-dark hover:bg-neutral-light'
+          }`}
+        >
+          <div className="flex items-center space-x-2">
+            <Download className="h-4 w-4" />
+            <span>Recibidos</span>
+            {receivedDocuments.filter(d => !d.readAt).length > 0 && (
+              <span className="bg-red-500 text-white text-xs rounded-full px-2 py-0.5">
+                {receivedDocuments.filter(d => !d.readAt).length}
+              </span>
+            )}
+          </div>
+        </button>
+        <button
+          onClick={() => setView('sent')}
+          className={`px-4 py-2 rounded-lg transition-colors ${
+            view === 'sent'
+              ? 'bg-brand-light text-brand-cream'
+              : 'text-neutral-dark hover:bg-neutral-light'
+          }`}
+        >
+          <div className="flex items-center space-x-2">
+            <Upload className="h-4 w-4" />
+            <span>Enviados</span>
+          </div>
+        </button>
+      </div>
+
+      {/* Documents List */}
+      {loading ? (
+        <div className="flex justify-center py-12">
+          <LoadingSpinner />
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {view === 'sent' && sentDocuments.length === 0 && (
+            <div className="bg-white rounded-xl shadow-sm border border-neutral-mid/20 p-12 text-center">
+              <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-500">No has enviado ningún documento</p>
+              <button
+                onClick={() => setShowUploadModal(true)}
+                className="mt-4 text-brand-light hover:text-brand-medium"
+              >
+                Subir tu primer documento
+              </button>
+            </div>
+          )}
+
+          {view === 'received' && receivedDocuments.length === 0 && (
+            <div className="bg-white rounded-xl shadow-sm border border-neutral-mid/20 p-12 text-center">
+              <Download className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-500">No has recibido ningún documento</p>
+            </div>
+          )}
+
+          {view === 'sent' && sentDocuments.map((doc) => (
+            <div key={doc.id} className="bg-white rounded-xl shadow-sm border border-neutral-mid/20 p-6">
+              <div className="flex justify-between items-start">
+                <div className="flex-1">
+                  <div className="flex items-center space-x-3 mb-2">
+                    <h3 className="text-lg font-semibold text-neutral-dark">{doc.title}</h3>
+                    {getStatusBadge(doc.status)}
+                    {getPriorityBadge(doc.priority)}
+                  </div>
+                  {doc.description && (
+                    <p className="text-sm text-gray-600 mb-3">{doc.description}</p>
+                  )}
+                  <div className="flex items-center space-x-4 text-sm text-gray-500">
+                    <span className="flex items-center">
+                      <File className="h-4 w-4 mr-1" />
+                      {getDocumentTypeLabel(doc.documentType)}
+                    </span>
+                    <span>
+                      {format(new Date(doc.createdAt), "d 'de' MMMM, yyyy", { locale: es })}
+                    </span>
+                  </div>
+                  {doc.reviewNotes && (
+                    <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                      <p className="text-sm font-medium text-blue-900 mb-1">Notas del revisor:</p>
+                      <p className="text-sm text-blue-700">{doc.reviewNotes}</p>
+                    </div>
+                  )}
+                </div>
+                <button
+                  onClick={() => handleDownload(doc.id, doc.originalName)}
+                  className="ml-4 p-2 text-brand-light hover:bg-brand-light/10 rounded-lg transition-colors"
+                  title="Descargar"
+                >
+                  <Download className="h-5 w-5" />
+                </button>
+              </div>
+            </div>
+          ))}
+
+          {view === 'received' && receivedDocuments.map((doc) => (
+            <div 
+              key={doc.id} 
+              className={`bg-white rounded-xl shadow-sm border p-6 ${
+                !doc.readAt ? 'border-brand-light border-2' : 'border-neutral-mid/20'
+              }`}
+            >
+              <div className="flex justify-between items-start">
+                <div className="flex-1">
+                  <div className="flex items-center space-x-3 mb-2">
+                    <h3 className="text-lg font-semibold text-neutral-dark">{doc.title}</h3>
+                    {!doc.readAt && (
+                      <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full">
+                        Nuevo
+                      </span>
+                    )}
+                    {getPriorityBadge(doc.priority)}
+                  </div>
+                  {doc.description && (
+                    <p className="text-sm text-gray-600 mb-3">{doc.description}</p>
+                  )}
+                  <div className="flex items-center space-x-4 text-sm text-gray-500">
+                    <span className="flex items-center">
+                      <File className="h-4 w-4 mr-1" />
+                      {getDocumentTypeLabel(doc.documentType)}
+                    </span>
+                    <span>
+                      De: {doc.sender?.name || 'Administración'}
+                    </span>
+                    <span>
+                      {format(new Date(doc.createdAt), "d 'de' MMMM, yyyy", { locale: es })}
+                    </span>
+                  </div>
+                </div>
+                <div className="flex items-center space-x-2 ml-4">
+                  <button
+                    onClick={() => {
+                      handleDownload(doc.id, doc.originalName);
+                      if (!doc.readAt) {
+                        handleMarkAsRead(doc.id);
+                      }
+                    }}
+                    className="p-2 text-brand-light hover:bg-brand-light/10 rounded-lg transition-colors"
+                    title="Descargar"
+                  >
+                    <Download className="h-5 w-5" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Upload Modal */}
+      {showUploadModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-xl font-bold text-neutral-dark">Subir Documento</h3>
+                <button
+                  onClick={() => setShowUploadModal(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <XCircle className="h-6 w-6" />
+                </button>
+              </div>
+
+              <form onSubmit={handleUpload} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Título *
+                  </label>
+                  <input
+                    type="text"
+                    value={uploadForm.title}
+                    onChange={(e) => setUploadForm({ ...uploadForm, title: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-brand-light focus:border-brand-light"
+                    placeholder="Ej: Justificante médico del 25/11"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Descripción
+                  </label>
+                  <textarea
+                    value={uploadForm.description}
+                    onChange={(e) => setUploadForm({ ...uploadForm, description: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-brand-light focus:border-brand-light"
+                    rows="3"
+                    placeholder="Información adicional sobre el documento..."
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Tipo de Documento *
+                    </label>
+                    <select
+                      value={uploadForm.documentType}
+                      onChange={(e) => setUploadForm({ ...uploadForm, documentType: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-brand-light focus:border-brand-light"
+                    >
+                      <option value="justificante">Justificante</option>
+                      <option value="baja_medica">Baja Médica</option>
+                      <option value="certificado">Certificado</option>
+                      <option value="otro">Otro</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Prioridad
+                    </label>
+                    <select
+                      value={uploadForm.priority}
+                      onChange={(e) => setUploadForm({ ...uploadForm, priority: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-brand-light focus:border-brand-light"
+                    >
+                      <option value="low">Baja</option>
+                      <option value="normal">Normal</option>
+                      <option value="high">Alta</option>
+                      <option value="urgent">Urgente</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Archivo *
+                  </label>
+                  <input
+                    type="file"
+                    onChange={handleFileChange}
+                    accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-brand-light focus:border-brand-light"
+                    required
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Formatos: PDF, Word, Imágenes (máx. 10MB)
+                  </p>
+                  {uploadForm.file && (
+                    <p className="text-sm text-green-600 mt-2">
+                      ✓ {uploadForm.file.name} ({(uploadForm.file.size / 1024 / 1024).toFixed(2)} MB)
+                    </p>
+                  )}
+                </div>
+
+                <div className="flex justify-end space-x-3 pt-4">
+                  <button
+                    type="button"
+                    onClick={() => setShowUploadModal(false)}
+                    className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+                    disabled={uploading}
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-2 bg-brand-light text-brand-cream rounded-lg hover:bg-brand-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={uploading}
+                  >
+                    {uploading ? 'Subiendo...' : 'Subir Documento'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

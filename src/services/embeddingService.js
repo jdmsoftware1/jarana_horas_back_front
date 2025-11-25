@@ -2,6 +2,8 @@ import OpenAI from 'openai';
 import fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import pdfParse from 'pdf-parse';
+import mammoth from 'mammoth';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -35,25 +37,62 @@ class EmbeddingService {
     }
   }
 
+  async extractTextFromPDF(filePath) {
+    try {
+      const dataBuffer = await fs.readFile(filePath);
+      const data = await pdfParse(dataBuffer);
+      return data.text;
+    } catch (error) {
+      console.error(`Error extrayendo texto de PDF ${filePath}:`, error.message);
+      return '';
+    }
+  }
+
+  async extractTextFromWord(filePath) {
+    try {
+      const result = await mammoth.extractRawText({ path: filePath });
+      return result.value;
+    } catch (error) {
+      console.error(`Error extrayendo texto de Word ${filePath}:`, error.message);
+      return '';
+    }
+  }
+
   async loadDocuments() {
     try {
       // Crear carpeta de conocimiento si no existe
       await fs.mkdir(this.documentsPath, { recursive: true });
 
-      // Leer todos los archivos .txt en la carpeta
+      // Leer todos los archivos soportados en la carpeta
       const files = await fs.readdir(this.documentsPath);
-      const txtFiles = files.filter(f => f.endsWith('.txt'));
+      const supportedFiles = files.filter(f => 
+        f.endsWith('.txt') || f.endsWith('.pdf') || f.endsWith('.docx') || f.endsWith('.doc')
+      );
 
-      if (txtFiles.length === 0) {
-        console.log('📝 No hay documentos en /knowledge. Crea archivos .txt ahí para añadir conocimiento.');
+      if (supportedFiles.length === 0) {
+        console.log('📝 No hay documentos en /knowledge. Soporta: .txt, .pdf, .docx, .doc');
         return;
       }
 
-      console.log(`📖 Cargando ${txtFiles.length} documentos...`);
+      console.log(`📖 Cargando ${supportedFiles.length} documentos...`);
 
-      for (const file of txtFiles) {
+      for (const file of supportedFiles) {
         const filePath = path.join(this.documentsPath, file);
-        const content = await fs.readFile(filePath, 'utf-8');
+        let content = '';
+
+        // Extraer contenido según el tipo de archivo
+        if (file.endsWith('.txt')) {
+          content = await fs.readFile(filePath, 'utf-8');
+        } else if (file.endsWith('.pdf')) {
+          content = await this.extractTextFromPDF(filePath);
+        } else if (file.endsWith('.docx') || file.endsWith('.doc')) {
+          content = await this.extractTextFromWord(filePath);
+        }
+
+        if (!content || content.trim().length === 0) {
+          console.log(`  ⚠️ ${file} - Sin contenido extraíble`);
+          continue;
+        }
         
         // Dividir en chunks si el documento es muy grande
         const chunks = this.splitIntoChunks(content, 1000);

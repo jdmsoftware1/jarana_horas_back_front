@@ -10,6 +10,7 @@ import { Vacation } from './Vacation.js';
 import { AbsenceCategory } from './AbsenceCategory.js';
 import AccessLog from './AccessLog.js';
 import { AIConversation } from './AIConversation.js';
+import { Document } from './Document.js';
 
 // Define associations
 Employee.hasMany(Record, {
@@ -204,4 +205,38 @@ AIConversation.belongsTo(Employee, {
   as: 'employee'
 });
 
-export { Employee, Record, Schedule, ScheduleTemplate, ScheduleTemplateDay, WeeklySchedule, DailyScheduleException, ScheduleBreak, Vacation, AbsenceCategory, AccessLog, AIConversation };
+// Document associations
+// Sender (quien envía el documento)
+Employee.hasMany(Document, {
+  foreignKey: 'senderId',
+  as: 'sentDocuments'
+});
+
+Document.belongsTo(Employee, {
+  foreignKey: 'senderId',
+  as: 'sender'
+});
+
+// Recipient (quien recibe el documento)
+Employee.hasMany(Document, {
+  foreignKey: 'recipientId',
+  as: 'receivedDocuments'
+});
+
+Document.belongsTo(Employee, {
+  foreignKey: 'recipientId',
+  as: 'recipient'
+});
+
+// Reviewer (quien revisó el documento)
+Employee.hasMany(Document, {
+  foreignKey: 'reviewedBy',
+  as: 'reviewedDocuments'
+});
+
+Document.belongsTo(Employee, {
+  foreignKey: 'reviewedBy',
+  as: 'reviewer'
+});
+
+export { Employee, Record, Schedule, ScheduleTemplate, ScheduleTemplateDay, WeeklySchedule, DailyScheduleException, ScheduleBreak, Vacation, AbsenceCategory, AccessLog, AIConversation, Document };

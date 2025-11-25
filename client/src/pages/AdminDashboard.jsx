@@ -18,7 +18,14 @@ import {
   Download,
   Brain,
   LogIn,
-  LogOut
+  LogOut,
+  File,
+  Upload,
+  Eye,
+  CheckCircle2,
+  XCircle,
+  Trash2,
+  AlertCircle
 } from 'lucide-react';
 import LoadingSpinner from '../components/LoadingSpinner';
 import Footer from '../components/Footer';
@@ -112,6 +119,7 @@ const AdminDashboard = () => {
     { id: 'vacations', label: 'Vacaciones', icon: Shield },
     { id: 'absence-categories', label: 'Categorías Ausencias', icon: FileText },
     { id: 'weekly', label: 'Vista Semanal', icon: FileText },
+    { id: 'documents', label: 'Documentos', icon: File },
   ];
 
   const aiTabs = aiUtilsEnabled ? [
@@ -137,6 +145,7 @@ const AdminDashboard = () => {
         {activeTab === 'vacations' && <VacationsContent />}
         {activeTab === 'absence-categories' && <AbsenceCategoryManager />}
         {activeTab === 'weekly' && <WeeklyViewContent />}
+        {activeTab === 'documents' && <DocumentsManagementContent />}
         {activeTab === 'ai-knowledge' && aiUtilsEnabled && <AIKnowledgeContent />}
         {activeTab === 'settings' && <SettingsContent />}
       </div>
@@ -2859,10 +2868,20 @@ const AIKnowledgeContent = () => {
 
   const handleFileSelect = (e) => {
     const file = e.target.files[0];
-    if (file && file.name.endsWith('.txt')) {
+    const allowedExtensions = ['.txt', '.pdf', '.docx', '.doc'];
+    const hasAllowedExtension = allowedExtensions.some(ext => 
+      file.name.toLowerCase().endsWith(ext)
+    );
+    
+    if (file && hasAllowedExtension) {
+      // Verificar tamaño (10MB máximo)
+      if (file.size > 10 * 1024 * 1024) {
+        alert('El archivo es demasiado grande. Máximo 10MB');
+        return;
+      }
       setSelectedFile(file);
     } else {
-      alert('Solo se permiten archivos .txt');
+      alert('Solo se permiten archivos .txt, .pdf, .docx, .doc');
     }
   };
 
@@ -3025,7 +3044,7 @@ const AIKnowledgeContent = () => {
         <div className="flex items-center space-x-4">
           <input
             type="file"
-            accept=".txt"
+            accept=".txt,.pdf,.docx,.doc"
             onChange={handleFileSelect}
             className="flex-1 px-3 py-2 border border-neutral-mid/30 rounded-lg"
           />
@@ -3038,7 +3057,7 @@ const AIKnowledgeContent = () => {
           </button>
         </div>
         <p className="text-sm text-brand-medium mt-2">
-          Solo archivos .txt. El documento se procesará automáticamente.
+          Formatos soportados: .txt, .pdf, .docx, .doc (máx. 10MB). El documento se procesará automáticamente.
         </p>
       </div>
 
@@ -4994,6 +5013,895 @@ const HoursComparisonModal = ({ employee, onClose }) => {
           </button>
         </div>
       </div>
+    </div>
+  );
+};
+
+// ============================================
+// DOCUMENTS MANAGEMENT CONTENT
+// ============================================
+
+const DocumentsManagementContent = () => {
+  const [view, setView] = useState('pending'); // 'pending', 'all', 'send'
+  const [pendingDocuments, setPendingDocuments] = useState([]);
+  const [allDocuments, setAllDocuments] = useState([]);
+  const [employees, setEmployees] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [showSendModal, setShowSendModal] = useState(false);
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [selectedDocument, setSelectedDocument] = useState(null);
+
+  // Filtros para vista "Todos los Documentos"
+  const [filters, setFilters] = useState({
+    employeeId: '',
+    documentType: '',
+    month: '',
+    year: new Date().getFullYear().toString(),
+    direction: 'admin_to_employee', // Por defecto mostrar documentos enviados a empleados
+    search: ''
+  });
+
+  // Form state para enviar documentos
+  const [sendForm, setSendForm] = useState({
+    title: '',
+    description: '',
+    documentType: 'nomina',
+    recipientId: '',
+    priority: 'normal',
+    expiresAt: '',
+    file: null
+  });
+
+  // Form state para revisar documentos
+  const [reviewForm, setReviewForm] = useState({
+    status: 'approved',
+    reviewNotes: ''
+  });
+
+  useEffect(() => {
+    loadPendingDocuments();
+    loadEmployees();
+  }, []);
+
+  useEffect(() => {
+    if (view === 'all') {
+      loadAllDocuments();
+    }
+  }, [view, filters]);
+
+  const loadPendingDocuments = async () => {
+    setLoading(true);
+    try {
+      const response = await authenticatedFetch(`${getApiUrl()}/documents/pending-from-employees`);
+      if (response.ok) {
+        const data = await response.json();
+        setPendingDocuments(data);
+      }
+    } catch (error) {
+      console.error('Error loading pending documents:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadEmployees = async () => {
+    try {
+      const response = await authenticatedFetch(`${getApiUrl()}/employees`);
+      if (response.ok) {
+        const data = await response.json();
+        setEmployees(data.filter(emp => emp.role === 'employee'));
+      }
+    } catch (error) {
+      console.error('Error loading employees:', error);
+    }
+  };
+
+  const loadAllDocuments = async () => {
+    setLoading(true);
+    try {
+      // Construir query params
+      const params = new URLSearchParams();
+      if (filters.employeeId) params.append('employeeId', filters.employeeId);
+      if (filters.documentType) params.append('documentType', filters.documentType);
+      if (filters.month) params.append('month', filters.month);
+      if (filters.year) params.append('year', filters.year);
+      if (filters.direction) params.append('direction', filters.direction);
+      if (filters.search) params.append('search', filters.search);
+
+      const response = await authenticatedFetch(`${getApiUrl()}/documents/all?${params.toString()}`);
+      if (response.ok) {
+        const data = await response.json();
+        setAllDocuments(data);
+      }
+    } catch (error) {
+      console.error('Error loading all documents:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (file.size > 10 * 1024 * 1024) {
+        alert('El archivo es demasiado grande. Máximo 10MB');
+        return;
+      }
+      setSendForm({ ...sendForm, file });
+    }
+  };
+
+  const handleSendDocument = async (e) => {
+    e.preventDefault();
+    
+    if (!sendForm.file || !sendForm.title) {
+      alert('Por favor completa todos los campos requeridos');
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', sendForm.file);
+      formData.append('title', sendForm.title);
+      formData.append('description', sendForm.description);
+      formData.append('documentType', sendForm.documentType);
+      formData.append('priority', sendForm.priority);
+      if (sendForm.recipientId) {
+        formData.append('recipientId', sendForm.recipientId);
+      }
+      if (sendForm.expiresAt) {
+        formData.append('expiresAt', sendForm.expiresAt);
+      }
+
+      const response = await authenticatedFetch(`${getApiUrl()}/documents/admin-to-employee`, {
+        method: 'POST',
+        body: formData
+      });
+
+      if (response.ok) {
+        alert('Documento enviado correctamente');
+        setShowSendModal(false);
+        setSendForm({
+          title: '',
+          description: '',
+          documentType: 'nomina',
+          recipientId: '',
+          priority: 'normal',
+          expiresAt: '',
+          file: null
+        });
+      } else {
+        const error = await response.json();
+        alert(`Error: ${error.error || 'No se pudo enviar el documento'}`);
+      }
+    } catch (error) {
+      console.error('Error sending document:', error);
+      alert('Error al enviar el documento');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleReviewDocument = async (e) => {
+    e.preventDefault();
+    
+    if (!selectedDocument) return;
+
+    try {
+      const response = await authenticatedFetch(`${getApiUrl()}/documents/${selectedDocument.id}/review`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(reviewForm)
+      });
+
+      if (response.ok) {
+        alert('Documento revisado correctamente');
+        setShowReviewModal(false);
+        setSelectedDocument(null);
+        setReviewForm({ status: 'approved', reviewNotes: '' });
+        loadPendingDocuments();
+      } else {
+        const error = await response.json();
+        alert(`Error: ${error.error || 'No se pudo revisar el documento'}`);
+      }
+    } catch (error) {
+      console.error('Error reviewing document:', error);
+      alert('Error al revisar el documento');
+    }
+  };
+
+  const handleDownload = async (documentId, originalName) => {
+    try {
+      const response = await authenticatedFetch(`${getApiUrl()}/documents/${documentId}/download`);
+      if (response.ok) {
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = originalName;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+      } else {
+        alert('Error al descargar el documento');
+      }
+    } catch (error) {
+      console.error('Error downloading document:', error);
+      alert('Error al descargar el documento');
+    }
+  };
+
+  const openReviewModal = (doc) => {
+    setSelectedDocument(doc);
+    setReviewForm({ status: 'approved', reviewNotes: '' });
+    setShowReviewModal(true);
+  };
+
+  const getStatusBadge = (status) => {
+    const badges = {
+      pending: { color: 'bg-yellow-100 text-yellow-800', label: 'Pendiente', icon: Clock },
+      reviewed: { color: 'bg-blue-100 text-blue-800', label: 'Revisado', icon: Eye },
+      approved: { color: 'bg-green-100 text-green-800', label: 'Aprobado', icon: CheckCircle2 },
+      rejected: { color: 'bg-red-100 text-red-800', label: 'Rechazado', icon: XCircle }
+    };
+    
+    const badge = badges[status] || badges.pending;
+    const Icon = badge.icon;
+    
+    return (
+      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${badge.color}`}>
+        <Icon className="h-3 w-3 mr-1" />
+        {badge.label}
+      </span>
+    );
+  };
+
+  const getPriorityBadge = (priority) => {
+    const badges = {
+      low: { color: 'bg-gray-100 text-gray-800', label: 'Baja' },
+      normal: { color: 'bg-blue-100 text-blue-800', label: 'Normal' },
+      high: { color: 'bg-orange-100 text-orange-800', label: 'Alta' },
+      urgent: { color: 'bg-red-100 text-red-800', label: 'Urgente' }
+    };
+    
+    const badge = badges[priority] || badges.normal;
+    
+    return (
+      <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${badge.color}`}>
+        {badge.label}
+      </span>
+    );
+  };
+
+  const getDocumentTypeLabel = (type) => {
+    const types = {
+      baja_medica: 'Baja Médica',
+      justificante: 'Justificante',
+      certificado: 'Certificado',
+      nomina: 'Nómina',
+      contrato: 'Contrato',
+      politica: 'Política',
+      notificacion: 'Notificación',
+      otro: 'Otro'
+    };
+    return types[type] || type;
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex justify-between items-center">
+        <div>
+          <h2 className="text-2xl font-bold text-neutral-dark">Gestión de Documentos</h2>
+          <p className="text-brand-medium mt-1">Administra documentos de empleados y envía comunicaciones</p>
+        </div>
+        <button
+          onClick={() => setShowSendModal(true)}
+          className="flex items-center space-x-2 px-4 py-2 bg-brand-light text-brand-cream rounded-lg hover:bg-brand-medium transition-colors"
+        >
+          <Upload className="h-4 w-4" />
+          <span>Enviar Documento</span>
+        </button>
+      </div>
+
+      {/* View Tabs */}
+      <div className="flex space-x-2 border-b border-neutral-mid/20">
+        <button
+          onClick={() => setView('pending')}
+          className={`px-4 py-2 font-medium transition-colors border-b-2 ${
+            view === 'pending'
+              ? 'border-brand-light text-brand-light'
+              : 'border-transparent text-gray-500 hover:text-gray-700'
+          }`}
+        >
+          <div className="flex items-center space-x-2">
+            <AlertCircle className="h-4 w-4" />
+            <span>Pendientes</span>
+            {pendingDocuments.length > 0 && (
+              <span className="bg-yellow-100 text-yellow-800 text-xs font-semibold px-2 py-0.5 rounded-full">
+                {pendingDocuments.length}
+              </span>
+            )}
+          </div>
+        </button>
+        <button
+          onClick={() => setView('all')}
+          className={`px-4 py-2 font-medium transition-colors border-b-2 ${
+            view === 'all'
+              ? 'border-brand-light text-brand-light'
+              : 'border-transparent text-gray-500 hover:text-gray-700'
+          }`}
+        >
+          <div className="flex items-center space-x-2">
+            <File className="h-4 w-4" />
+            <span>Todos los Documentos</span>
+          </div>
+        </button>
+      </div>
+
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="bg-white rounded-xl shadow-sm border border-neutral-mid/20 p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600">Pendientes de Revisión</p>
+              <p className="text-3xl font-bold text-yellow-600 mt-2">{pendingDocuments.length}</p>
+            </div>
+            <div className="bg-yellow-100 rounded-lg p-3">
+              <AlertCircle className="h-8 w-8 text-yellow-600" />
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl shadow-sm border border-neutral-mid/20 p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600">Empleados Activos</p>
+              <p className="text-3xl font-bold text-blue-600 mt-2">{employees.length}</p>
+            </div>
+            <div className="bg-blue-100 rounded-lg p-3">
+              <Users className="h-8 w-8 text-blue-600" />
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl shadow-sm border border-neutral-mid/20 p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600">Documentos Urgentes</p>
+              <p className="text-3xl font-bold text-red-600 mt-2">
+                {pendingDocuments.filter(d => d.priority === 'urgent').length}
+              </p>
+            </div>
+            <div className="bg-red-100 rounded-lg p-3">
+              <File className="h-8 w-8 text-red-600" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Pending Documents List */}
+      {view === 'pending' && (
+        <div className="bg-white rounded-xl shadow-sm border border-neutral-mid/20">
+          <div className="p-6 border-b border-neutral-mid/20">
+            <h3 className="text-lg font-semibold text-neutral-dark">Documentos Pendientes de Revisión</h3>
+          </div>
+
+        {loading ? (
+          <div className="flex justify-center py-12">
+            <LoadingSpinner />
+          </div>
+        ) : pendingDocuments.length === 0 ? (
+          <div className="p-12 text-center">
+            <CheckCircle2 className="h-12 w-12 text-green-500 mx-auto mb-4" />
+            <p className="text-gray-500">No hay documentos pendientes de revisión</p>
+          </div>
+        ) : (
+          <div className="divide-y divide-neutral-mid/20">
+            {pendingDocuments.map((doc) => (
+              <div key={doc.id} className="p-6 hover:bg-neutral-light/30 transition-colors">
+                <div className="flex justify-between items-start">
+                  <div className="flex-1">
+                    <div className="flex items-center space-x-3 mb-2">
+                      <h4 className="text-lg font-semibold text-neutral-dark">{doc.title}</h4>
+                      {getStatusBadge(doc.status)}
+                      {getPriorityBadge(doc.priority)}
+                    </div>
+                    {doc.description && (
+                      <p className="text-sm text-gray-600 mb-3">{doc.description}</p>
+                    )}
+                    <div className="flex items-center space-x-4 text-sm text-gray-500">
+                      <span className="flex items-center">
+                        <File className="h-4 w-4 mr-1" />
+                        {getDocumentTypeLabel(doc.documentType)}
+                      </span>
+                      <span className="flex items-center">
+                        <Users className="h-4 w-4 mr-1" />
+                        {doc.sender?.name} ({doc.sender?.employeeCode})
+                      </span>
+                      <span>
+                        {format(new Date(doc.createdAt), "d 'de' MMMM, yyyy", { locale: es })}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-2 ml-4">
+                    <button
+                      onClick={() => handleDownload(doc.id, doc.originalName)}
+                      className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                      title="Descargar"
+                    >
+                      <Download className="h-5 w-5" />
+                    </button>
+                    <button
+                      onClick={() => openReviewModal(doc)}
+                      className="px-4 py-2 bg-brand-light text-brand-cream rounded-lg hover:bg-brand-medium transition-colors"
+                    >
+                      Revisar
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+        </div>
+      )}
+
+      {/* All Documents View with Filters */}
+      {view === 'all' && (
+        <div className="space-y-6">
+          {/* Filters */}
+          <div className="bg-white rounded-xl shadow-sm border border-neutral-mid/20 p-6">
+            <h3 className="text-lg font-semibold text-neutral-dark mb-4">Filtros</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* Empleado */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Empleado
+                </label>
+                <select
+                  value={filters.employeeId}
+                  onChange={(e) => setFilters({ ...filters, employeeId: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-brand-light focus:border-brand-light"
+                >
+                  <option value="">Todos los empleados</option>
+                  {employees.map(emp => (
+                    <option key={emp.id} value={emp.id}>
+                      {emp.name} ({emp.employeeCode})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Tipo de Documento */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Tipo de Documento
+                </label>
+                <select
+                  value={filters.documentType}
+                  onChange={(e) => setFilters({ ...filters, documentType: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-brand-light focus:border-brand-light"
+                >
+                  <option value="">Todos los tipos</option>
+                  <option value="nomina">Nómina</option>
+                  <option value="contrato">Contrato</option>
+                  <option value="politica">Política</option>
+                  <option value="notificacion">Notificación</option>
+                  <option value="baja_medica">Baja Médica</option>
+                  <option value="justificante">Justificante</option>
+                  <option value="certificado">Certificado</option>
+                  <option value="otro">Otro</option>
+                </select>
+              </div>
+
+              {/* Mes */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Mes
+                </label>
+                <select
+                  value={filters.month}
+                  onChange={(e) => setFilters({ ...filters, month: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-brand-light focus:border-brand-light"
+                >
+                  <option value="">Todos los meses</option>
+                  <option value="1">Enero</option>
+                  <option value="2">Febrero</option>
+                  <option value="3">Marzo</option>
+                  <option value="4">Abril</option>
+                  <option value="5">Mayo</option>
+                  <option value="6">Junio</option>
+                  <option value="7">Julio</option>
+                  <option value="8">Agosto</option>
+                  <option value="9">Septiembre</option>
+                  <option value="10">Octubre</option>
+                  <option value="11">Noviembre</option>
+                  <option value="12">Diciembre</option>
+                </select>
+              </div>
+
+              {/* Año */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Año
+                </label>
+                <select
+                  value={filters.year}
+                  onChange={(e) => setFilters({ ...filters, year: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-brand-light focus:border-brand-light"
+                >
+                  {[...Array(5)].map((_, i) => {
+                    const year = new Date().getFullYear() - i;
+                    return <option key={year} value={year}>{year}</option>;
+                  })}
+                </select>
+              </div>
+
+              {/* Dirección */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Dirección
+                </label>
+                <select
+                  value={filters.direction}
+                  onChange={(e) => setFilters({ ...filters, direction: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-brand-light focus:border-brand-light"
+                >
+                  <option value="">Todos</option>
+                  <option value="admin_to_employee">Admin → Empleado</option>
+                  <option value="employee_to_admin">Empleado → Admin</option>
+                </select>
+              </div>
+
+              {/* Búsqueda */}
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Buscar
+                </label>
+                <input
+                  type="text"
+                  value={filters.search}
+                  onChange={(e) => setFilters({ ...filters, search: e.target.value })}
+                  placeholder="Buscar por título o descripción..."
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-brand-light focus:border-brand-light"
+                />
+              </div>
+
+              {/* Botón limpiar filtros */}
+              <div className="flex items-end">
+                <button
+                  onClick={() => setFilters({
+                    employeeId: '',
+                    documentType: '',
+                    month: '',
+                    year: new Date().getFullYear().toString(),
+                    direction: 'admin_to_employee',
+                    search: ''
+                  })}
+                  className="w-full px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  Limpiar Filtros
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Documents List */}
+          <div className="bg-white rounded-xl shadow-sm border border-neutral-mid/20">
+            <div className="p-6 border-b border-neutral-mid/20">
+              <h3 className="text-lg font-semibold text-neutral-dark">
+                Documentos ({allDocuments.length})
+              </h3>
+            </div>
+
+            {loading ? (
+              <div className="flex justify-center py-12">
+                <LoadingSpinner />
+              </div>
+            ) : allDocuments.length === 0 ? (
+              <div className="p-12 text-center">
+                <File className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-500">No se encontraron documentos con los filtros seleccionados</p>
+              </div>
+            ) : (
+              <div className="divide-y divide-neutral-mid/20">
+                {allDocuments.map((doc) => (
+                  <div key={doc.id} className="p-6 hover:bg-neutral-light/30 transition-colors">
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-3 mb-2">
+                          <h4 className="text-lg font-semibold text-neutral-dark">{doc.title}</h4>
+                          {getStatusBadge(doc.status)}
+                          {getPriorityBadge(doc.priority)}
+                        </div>
+                        {doc.description && (
+                          <p className="text-sm text-gray-600 mb-3">{doc.description}</p>
+                        )}
+                        <div className="flex items-center flex-wrap gap-4 text-sm text-gray-500">
+                          <span className="flex items-center">
+                            <File className="h-4 w-4 mr-1" />
+                            {getDocumentTypeLabel(doc.documentType)}
+                          </span>
+                          <span className="flex items-center">
+                            <Users className="h-4 w-4 mr-1" />
+                            {doc.direction === 'admin_to_employee' 
+                              ? `Para: ${doc.recipient?.name || 'Todos'}`
+                              : `De: ${doc.sender?.name}`
+                            }
+                          </span>
+                          <span>
+                            {format(new Date(doc.createdAt), "d 'de' MMMM, yyyy", { locale: es })}
+                          </span>
+                          {doc.reviewedAt && (
+                            <span className="flex items-center text-green-600">
+                              <CheckCircle2 className="h-4 w-4 mr-1" />
+                              Revisado por {doc.reviewer?.name}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-2 ml-4">
+                        <button
+                          onClick={() => handleDownload(doc.id, doc.originalName)}
+                          className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                          title="Descargar"
+                        >
+                          <Download className="h-5 w-5" />
+                        </button>
+                        {doc.direction === 'employee_to_admin' && doc.status === 'pending' && (
+                          <button
+                            onClick={() => openReviewModal(doc)}
+                            className="px-4 py-2 bg-brand-light text-brand-cream rounded-lg hover:bg-brand-medium transition-colors"
+                          >
+                            Revisar
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Send Document Modal */}
+      {showSendModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-xl font-bold text-neutral-dark">Enviar Documento a Empleado(s)</h3>
+                <button
+                  onClick={() => setShowSendModal(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <XCircle className="h-6 w-6" />
+                </button>
+              </div>
+
+              <form onSubmit={handleSendDocument} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Título *
+                  </label>
+                  <input
+                    type="text"
+                    value={sendForm.title}
+                    onChange={(e) => setSendForm({ ...sendForm, title: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-brand-light focus:border-brand-light"
+                    placeholder="Ej: Nómina de Noviembre 2025"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Descripción
+                  </label>
+                  <textarea
+                    value={sendForm.description}
+                    onChange={(e) => setSendForm({ ...sendForm, description: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-brand-light focus:border-brand-light"
+                    rows="3"
+                    placeholder="Información adicional sobre el documento..."
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Tipo de Documento *
+                    </label>
+                    <select
+                      value={sendForm.documentType}
+                      onChange={(e) => setSendForm({ ...sendForm, documentType: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-brand-light focus:border-brand-light"
+                    >
+                      <option value="nomina">Nómina</option>
+                      <option value="contrato">Contrato</option>
+                      <option value="politica">Política</option>
+                      <option value="notificacion">Notificación</option>
+                      <option value="otro">Otro</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Prioridad
+                    </label>
+                    <select
+                      value={sendForm.priority}
+                      onChange={(e) => setSendForm({ ...sendForm, priority: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-brand-light focus:border-brand-light"
+                    >
+                      <option value="low">Baja</option>
+                      <option value="normal">Normal</option>
+                      <option value="high">Alta</option>
+                      <option value="urgent">Urgente</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Destinatario
+                  </label>
+                  <select
+                    value={sendForm.recipientId}
+                    onChange={(e) => setSendForm({ ...sendForm, recipientId: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-brand-light focus:border-brand-light"
+                  >
+                    <option value="">Todos los empleados</option>
+                    {employees.map((emp) => (
+                      <option key={emp.id} value={emp.id}>
+                        {emp.name} ({emp.employeeCode})
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Deja en blanco para enviar a todos los empleados
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Fecha de Expiración (Opcional)
+                  </label>
+                  <input
+                    type="date"
+                    value={sendForm.expiresAt}
+                    onChange={(e) => setSendForm({ ...sendForm, expiresAt: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-brand-light focus:border-brand-light"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Archivo *
+                  </label>
+                  <input
+                    type="file"
+                    onChange={handleFileChange}
+                    accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-brand-light focus:border-brand-light"
+                    required
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Formatos: PDF, Word, Imágenes (máx. 10MB)
+                  </p>
+                  {sendForm.file && (
+                    <p className="text-sm text-green-600 mt-2">
+                      ✓ {sendForm.file.name} ({(sendForm.file.size / 1024 / 1024).toFixed(2)} MB)
+                    </p>
+                  )}
+                </div>
+
+                <div className="flex justify-end space-x-3 pt-4">
+                  <button
+                    type="button"
+                    onClick={() => setShowSendModal(false)}
+                    className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+                    disabled={uploading}
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-2 bg-brand-light text-brand-cream rounded-lg hover:bg-brand-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={uploading}
+                  >
+                    {uploading ? 'Enviando...' : 'Enviar Documento'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Review Document Modal */}
+      {showReviewModal && selectedDocument && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-xl font-bold text-neutral-dark">Revisar Documento</h3>
+                <button
+                  onClick={() => setShowReviewModal(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <XCircle className="h-6 w-6" />
+                </button>
+              </div>
+
+              {/* Document Info */}
+              <div className="mb-6 p-4 bg-neutral-light rounded-lg">
+                <h4 className="font-semibold text-neutral-dark mb-2">{selectedDocument.title}</h4>
+                <div className="text-sm text-gray-600 space-y-1">
+                  <p><strong>De:</strong> {selectedDocument.sender?.name} ({selectedDocument.sender?.employeeCode})</p>
+                  <p><strong>Tipo:</strong> {getDocumentTypeLabel(selectedDocument.documentType)}</p>
+                  <p><strong>Fecha:</strong> {format(new Date(selectedDocument.createdAt), "d 'de' MMMM, yyyy", { locale: es })}</p>
+                  {selectedDocument.description && (
+                    <p><strong>Descripción:</strong> {selectedDocument.description}</p>
+                  )}
+                </div>
+              </div>
+
+              <form onSubmit={handleReviewDocument} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Estado *
+                  </label>
+                  <select
+                    value={reviewForm.status}
+                    onChange={(e) => setReviewForm({ ...reviewForm, status: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-brand-light focus:border-brand-light"
+                  >
+                    <option value="reviewed">Revisado</option>
+                    <option value="approved">Aprobado</option>
+                    <option value="rejected">Rechazado</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Notas de Revisión
+                  </label>
+                  <textarea
+                    value={reviewForm.reviewNotes}
+                    onChange={(e) => setReviewForm({ ...reviewForm, reviewNotes: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-brand-light focus:border-brand-light"
+                    rows="4"
+                    placeholder="Añade comentarios sobre la revisión..."
+                  />
+                </div>
+
+                <div className="flex justify-end space-x-3 pt-4">
+                  <button
+                    type="button"
+                    onClick={() => setShowReviewModal(false)}
+                    className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-2 bg-brand-light text-brand-cream rounded-lg hover:bg-brand-medium"
+                  >
+                    Guardar Revisión
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

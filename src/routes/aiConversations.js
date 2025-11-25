@@ -1,13 +1,13 @@
 import express from 'express';
-import { AIConversation } from '../models/index.js';
-import { authMiddleware } from '../middleware/auth.js';
+import { AIConversation, Employee } from '../models/index.js';
+import { authMiddleware } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
 // Obtener todas las conversaciones del usuario actual
 router.get('/', authMiddleware, async (req, res) => {
   try {
-    const employeeId = req.user.id;
+    const employeeId = req.employee.id;
     
     const conversations = await AIConversation.findAll({
       where: { employeeId },
@@ -26,7 +26,7 @@ router.get('/', authMiddleware, async (req, res) => {
 router.get('/:id', authMiddleware, async (req, res) => {
   try {
     const { id } = req.params;
-    const employeeId = req.user.id;
+    const employeeId = req.employee.id;
     
     const conversation = await AIConversation.findOne({
       where: { 
@@ -50,7 +50,7 @@ router.get('/:id', authMiddleware, async (req, res) => {
 router.post('/', authMiddleware, async (req, res) => {
   try {
     const { conversationId, messages, userRole } = req.body;
-    const employeeId = req.user.id;
+    const employeeId = req.employee.id;
 
     // Generar título del primer mensaje del usuario
     const firstUserMessage = messages.find(msg => msg.role === 'user');
@@ -98,7 +98,7 @@ router.post('/', authMiddleware, async (req, res) => {
 router.delete('/:id', authMiddleware, async (req, res) => {
   try {
     const { id } = req.params;
-    const employeeId = req.user.id;
+    const employeeId = req.employee.id;
     
     const conversation = await AIConversation.findOne({
       where: { 
@@ -123,7 +123,7 @@ router.delete('/:id', authMiddleware, async (req, res) => {
 // Eliminar todas las conversaciones del usuario
 router.delete('/', authMiddleware, async (req, res) => {
   try {
-    const employeeId = req.user.id;
+    const employeeId = req.employee.id;
     
     await AIConversation.destroy({
       where: { employeeId }
