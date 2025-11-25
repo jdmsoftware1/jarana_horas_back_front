@@ -136,7 +136,7 @@ router.get('/employee-to-admin/my-documents', authMiddleware, async (req, res) =
       include: [
         { model: Employee, as: 'reviewer', attributes: ['id', 'name', 'employeeCode'] }
       ],
-      order: [['createdAt', 'DESC']]
+      order: [['created_at', 'DESC']]
     });
 
     res.json(documents);
@@ -229,7 +229,7 @@ router.get('/admin-to-employee/my-documents', authMiddleware, async (req, res) =
       include: [
         { model: Employee, as: 'sender', attributes: ['id', 'name', 'employeeCode'] }
       ],
-      order: [['createdAt', 'DESC']]
+      order: [['created_at', 'DESC']]
     });
 
     res.json(documents);
@@ -269,24 +269,26 @@ router.get('/all', authMiddleware, async (req, res) => {
       if (direction === 'employee_to_admin') {
         where.senderId = employeeId;
       } else if (direction === 'admin_to_employee') {
+        // Si se especifica un empleado, mostrar documentos para ese empleado o generales
         where[Op.or] = [
           { recipientId: employeeId },
           { recipientId: null } // Documentos para todos
         ];
       }
     }
+    // Si NO se especifica employeeId, el admin ve TODOS los documentos (no aplicar filtro)
     
     // Filtro por mes y año
     if (month && year) {
       const startDate = new Date(parseInt(year), parseInt(month) - 1, 1);
       const endDate = new Date(parseInt(year), parseInt(month), 0, 23, 59, 59);
-      where.createdAt = {
+      where.created_at = {
         [Op.between]: [startDate, endDate]
       };
     } else if (year) {
       const startDate = new Date(parseInt(year), 0, 1);
       const endDate = new Date(parseInt(year), 11, 31, 23, 59, 59);
-      where.createdAt = {
+      where.created_at = {
         [Op.between]: [startDate, endDate]
       };
     }
@@ -306,7 +308,7 @@ router.get('/all', authMiddleware, async (req, res) => {
         { model: Employee, as: 'recipient', attributes: ['id', 'name', 'email', 'employeeCode'], required: false },
         { model: Employee, as: 'reviewer', attributes: ['id', 'name', 'employeeCode'], required: false }
       ],
-      order: [['createdAt', 'DESC']]
+      order: [['created_at', 'DESC']]
     });
 
     res.json(documents);
@@ -329,18 +331,24 @@ router.get('/pending-from-employees', authMiddleware, async (req, res) => {
         status: 'pending'
       },
       include: [
-        { model: Employee, as: 'sender', attributes: ['id', 'name', 'email', 'employeeCode'] }
+        { 
+          model: Employee, 
+          as: 'sender', 
+          attributes: ['id', 'name', 'email', 'employeeCode'],
+          required: false
+        }
       ],
       order: [
-        ['priority', 'DESC'],
-        ['createdAt', 'ASC']
+        ['created_at', 'DESC']
       ]
     });
 
     res.json(documents);
   } catch (error) {
     console.error('Error fetching pending documents:', error);
-    res.status(500).json({ error: 'Error al obtener documentos pendientes' });
+    console.error('Error details:', error.message);
+    console.error('Error stack:', error.stack);
+    res.status(500).json({ error: 'Error al obtener documentos pendientes', details: error.message });
   }
 });
 

@@ -19,7 +19,11 @@ import {
   Eye,
   Trash2,
   File,
-  CheckCircle2
+  CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
+  LayoutDashboard,
+  BarChart3
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -72,6 +76,8 @@ const EmployeePortal = () => {
   const [employeeCode, setEmployeeCode] = useState('EMP');
   const [authError, setAuthError] = useState('');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [unreadDocumentsCount, setUnreadDocumentsCount] = useState(0);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
   // Authenticate employee
   const handleAuth = async (e) => {
@@ -113,12 +119,37 @@ const EmployeePortal = () => {
     }
   };
 
+  // Cargar contador de documentos no leídos
+  const loadUnreadDocumentsCount = async () => {
+    try {
+      const response = await authenticatedFetch(`${getApiUrl()}/documents/admin-to-employee/my-documents`);
+      if (response.ok) {
+        const documents = await response.json();
+        const unreadCount = documents.filter(doc => !doc.readAt).length;
+        setUnreadDocumentsCount(unreadCount);
+      }
+    } catch (error) {
+      console.error('Error loading unread documents count:', error);
+    }
+  };
+
+  // Cargar contador al autenticarse y periódicamente
+  useEffect(() => {
+    if (isAuthenticated && employee) {
+      loadUnreadDocumentsCount();
+      // Actualizar cada 30 segundos
+      const interval = setInterval(loadUnreadDocumentsCount, 30000);
+      return () => clearInterval(interval);
+    }
+  }, [isAuthenticated, employee]);
+
   const handleLogout = () => {
     setEmployee(null);
     setIsAuthenticated(false);
     setEmployeeCode('EMP');
     setAuthCode('');
     setActiveTab('dashboard');
+    setUnreadDocumentsCount(0);
   };
 
   // Authentication form
@@ -220,86 +251,138 @@ const EmployeePortal = () => {
     );
   }
 
-  // Main portal interface
-  const tabs = [
-    { id: 'dashboard', label: 'Inicio', icon: User },
+  // Main portal interface - Sidebar menu items
+  const menuItems = [
+    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'calendar', label: 'Calendario', icon: Calendar },
     { id: 'records', label: 'Mis Fichajes', icon: Clock },
     { id: 'vacations', label: 'Vacaciones', icon: MessageCircle },
     { id: 'documents', label: 'Documentos', icon: File },
-    { id: 'reports', label: 'Reportes', icon: FileText }
+    { id: 'reports', label: 'Reportes', icon: BarChart3 }
   ];
 
   return (
-    <div className="min-h-screen bg-neutral-light flex flex-col">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b border-neutral-mid/20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
-              <Link 
-                to="/"
-                className="text-brand-medium hover:text-brand-dark transition-colors mr-6"
-              >
-                <ArrowLeft className="h-5 w-5" />
-              </Link>
-              <h1 className="text-xl font-semibold text-neutral-dark">
-                Portal del Empleado
-              </h1>
-            </div>
+    <div className="min-h-screen bg-neutral-light flex">
+      {/* Sidebar */}
+      <aside className={`bg-white border-r border-neutral-mid/20 transition-all duration-300 ${
+        isSidebarCollapsed ? 'w-20' : 'w-64'
+      } flex flex-col`}>
+        {/* Sidebar Header */}
+        <div className="h-16 flex items-center justify-between px-4 border-b border-neutral-mid/20">
+          {!isSidebarCollapsed && (
+            <h2 className="text-lg font-semibold text-brand-dark">Portal</h2>
+          )}
+          <button
+            onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+            className="p-2 rounded-lg hover:bg-neutral-light transition-colors"
+          >
+            {isSidebarCollapsed ? (
+              <ChevronRight className="h-5 w-5 text-brand-medium" />
+            ) : (
+              <ChevronLeft className="h-5 w-5 text-brand-medium" />
+            )}
+          </button>
+        </div>
+
+        {/* Menu Items */}
+        <nav className="flex-1 px-3 py-4 space-y-1">
+          {menuItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = activeTab === item.id;
+            const showBadge = item.id === 'documents' && unreadDocumentsCount > 0;
             
-            <div className="flex items-center space-x-4">
-              <div className="text-right">
-                <p className="text-sm font-medium text-neutral-dark">{employee.name}</p>
-                <p className="text-xs text-brand-medium">{employee.employeeCode}</p>
+            return (
+              <button
+                key={item.id}
+                onClick={() => setActiveTab(item.id)}
+                className={`w-full flex items-center px-3 py-2 rounded-lg transition-colors ${
+                  isActive
+                    ? 'bg-brand-light text-white'
+                    : 'text-brand-medium hover:bg-neutral-light hover:text-brand-dark'
+                }`}
+                title={isSidebarCollapsed ? item.label : ''}
+              >
+                <Icon className={`h-5 w-5 ${isSidebarCollapsed ? 'mx-auto' : 'mr-3'}`} />
+                {!isSidebarCollapsed && (
+                  <>
+                    <span className="flex-1 text-left">{item.label}</span>
+                    {showBadge && (
+                      <span className="inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white bg-red-600 rounded-full">
+                        {unreadDocumentsCount}
+                      </span>
+                    )}
+                  </>
+                )}
+                {isSidebarCollapsed && showBadge && (
+                  <span className="absolute top-1 right-1 h-2 w-2 bg-red-600 rounded-full"></span>
+                )}
+              </button>
+            );
+          })}
+        </nav>
+
+        {/* User Info & Logout */}
+        <div className="border-t border-neutral-mid/20 p-4">
+          {!isSidebarCollapsed ? (
+            <div className="space-y-3">
+              <div className="flex items-center space-x-3">
+                <div className="h-10 w-10 rounded-full bg-brand-light flex items-center justify-center text-white font-semibold">
+                  {employee.name.charAt(0)}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-neutral-dark truncate">{employee.name}</p>
+                  <p className="text-xs text-brand-medium truncate">{employee.employeeCode}</p>
+                </div>
               </div>
               <button
                 onClick={handleLogout}
-                className="text-brand-medium hover:text-brand-dark transition-colors"
+                className="w-full flex items-center justify-center px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors"
               >
-                <LogOut className="h-5 w-5" />
+                <LogOut className="h-4 w-4 mr-2" />
+                Cerrar Sesión
               </button>
             </div>
+          ) : (
+            <button
+              onClick={handleLogout}
+              className="w-full p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+              title="Cerrar Sesión"
+            >
+              <LogOut className="h-5 w-5 mx-auto" />
+            </button>
+          )}
+        </div>
+      </aside>
+
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col">
+        {/* Header */}
+        <header className="bg-white shadow-sm border-b border-neutral-mid/20 h-16 flex items-center px-6">
+          <Link 
+            to="/"
+            className="text-brand-medium hover:text-brand-dark transition-colors mr-4"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Link>
+          <h1 className="text-xl font-semibold text-neutral-dark">
+            {menuItems.find(item => item.id === activeTab)?.label || 'Portal del Empleado'}
+          </h1>
+        </header>
+
+        {/* Content */}
+        <main className="flex-1 overflow-auto p-6">
+          <div className="max-w-7xl mx-auto">
+            {activeTab === 'dashboard' && <DashboardContent employee={employee} setActiveTab={setActiveTab} />}
+            {activeTab === 'calendar' && <EmployeeCalendar employee={employee} />}
+            {activeTab === 'records' && <RecordsContent employee={employee} />}
+            {activeTab === 'vacations' && <VacationsContent employee={employee} />}
+            {activeTab === 'documents' && <DocumentsContent employee={employee} onDocumentRead={loadUnreadDocumentsCount} />}
+            {activeTab === 'reports' && <ReportsContent employee={employee} />}
           </div>
-        </div>
-      </header>
+        </main>
 
-      {/* Navigation Tabs */}
-      <div className="bg-white border-b border-neutral-mid/20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <nav className="flex space-x-8">
-            {tabs.map((tab) => {
-              const Icon = tab.icon;
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center px-1 py-4 border-b-2 font-medium text-sm transition-colors ${
-                    activeTab === tab.id
-                      ? 'border-brand-light text-brand-dark'
-                      : 'border-transparent text-brand-medium hover:text-brand-dark hover:border-brand-light/50'
-                  }`}
-                >
-                  <Icon className="h-4 w-4 mr-2" />
-                  {tab.label}
-                </button>
-              );
-            })}
-          </nav>
-        </div>
+        <Footer />
       </div>
-
-      {/* Content */}
-      <div className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {activeTab === 'dashboard' && <DashboardContent employee={employee} setActiveTab={setActiveTab} />}
-        {activeTab === 'calendar' && <EmployeeCalendar employee={employee} />}
-        {activeTab === 'records' && <RecordsContent employee={employee} />}
-        {activeTab === 'vacations' && <VacationsContent employee={employee} />}
-        {activeTab === 'documents' && <DocumentsContent employee={employee} />}
-        {activeTab === 'reports' && <ReportsContent employee={employee} />}
-      </div>
-
-      <Footer />
       
       {/* AI Chat */}
       <AIChat userId={employee.id} userRole="employee" />
@@ -1583,7 +1666,7 @@ const ReportsContent = ({ employee }) => {
 // DOCUMENTS CONTENT
 // ============================================
 
-const DocumentsContent = ({ employee }) => {
+const DocumentsContent = ({ employee, onDocumentRead }) => {
   const [view, setView] = useState('received'); // 'received' or 'sent'
   const [sentDocuments, setSentDocuments] = useState([]);
   const [receivedDocuments, setReceivedDocuments] = useState([]);
@@ -1714,6 +1797,10 @@ const DocumentsContent = ({ employee }) => {
       });
       if (response.ok) {
         loadDocuments();
+        // Actualizar contador de documentos no leídos
+        if (onDocumentRead) {
+          onDocumentRead();
+        }
       }
     } catch (error) {
       console.error('Error marking as read:', error);
@@ -1867,7 +1954,10 @@ const DocumentsContent = ({ employee }) => {
                       {getDocumentTypeLabel(doc.documentType)}
                     </span>
                     <span>
-                      {format(new Date(doc.createdAt), "d 'de' MMMM, yyyy", { locale: es })}
+                      {doc.createdAt || doc.created_at 
+                        ? format(new Date(doc.createdAt || doc.created_at), "d 'de' MMMM, yyyy", { locale: es })
+                        : 'Fecha no disponible'
+                      }
                     </span>
                   </div>
                   {doc.reviewNotes && (
@@ -1918,7 +2008,10 @@ const DocumentsContent = ({ employee }) => {
                       De: {doc.sender?.name || 'Administración'}
                     </span>
                     <span>
-                      {format(new Date(doc.createdAt), "d 'de' MMMM, yyyy", { locale: es })}
+                      {doc.createdAt || doc.created_at 
+                        ? format(new Date(doc.createdAt || doc.created_at), "d 'de' MMMM, yyyy", { locale: es })
+                        : 'Fecha no disponible'
+                      }
                     </span>
                   </div>
                 </div>

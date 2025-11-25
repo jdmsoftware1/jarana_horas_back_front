@@ -797,7 +797,12 @@ const RecordsContent = () => {
   };
 
   const formatTime = (timestamp) => {
-    return format(new Date(timestamp), 'HH:mm');
+    if (!timestamp) return '--:--';
+    try {
+      return format(new Date(timestamp), 'HH:mm');
+    } catch (error) {
+      return '--:--';
+    }
   };
 
   // Group records by day
@@ -805,11 +810,16 @@ const RecordsContent = () => {
     const grouped = {};
     
     records.forEach(record => {
-      const date = format(new Date(record.timestamp), 'yyyy-MM-dd');
-      if (!grouped[date]) {
-        grouped[date] = [];
+      if (!record.timestamp) return;
+      try {
+        const date = format(new Date(record.timestamp), 'yyyy-MM-dd');
+        if (!grouped[date]) {
+          grouped[date] = [];
+        }
+        grouped[date].push(record);
+      } catch (error) {
+        console.error('Error formatting date:', error);
       }
-      grouped[date].push(record);
     });
 
     // Sort records within each day
@@ -939,7 +949,7 @@ const RecordsContent = () => {
                   <div className="flex justify-between items-center">
                     <div>
                       <h3 className="text-lg font-semibold text-brand-cream">
-                        {format(new Date(date), "EEEE, d 'de' MMMM 'de' yyyy", { locale: es })}
+                        {date ? format(new Date(date), "EEEE, d 'de' MMMM 'de' yyyy", { locale: es }) : 'Fecha no disponible'}
                       </h3>
                       <p className="text-sm text-brand-cream/80 mt-1">
                         {checkins.length} entrada(s) • {checkouts.length} salida(s)
@@ -5037,8 +5047,8 @@ const DocumentsManagementContent = () => {
     employeeId: '',
     documentType: '',
     month: '',
-    year: new Date().getFullYear().toString(),
-    direction: 'admin_to_employee', // Por defecto mostrar documentos enviados a empleados
+    year: '', // Sin filtro de año por defecto para mostrar TODOS los documentos
+    direction: '', // Por defecto mostrar TODOS los documentos (sin filtro de dirección)
     search: ''
   });
 
@@ -5109,10 +5119,15 @@ const DocumentsManagementContent = () => {
       if (filters.direction) params.append('direction', filters.direction);
       if (filters.search) params.append('search', filters.search);
 
+      console.log('Loading documents with filters:', filters);
       const response = await authenticatedFetch(`${getApiUrl()}/documents/all?${params.toString()}`);
       if (response.ok) {
         const data = await response.json();
+        console.log('Documents loaded:', data.length, data);
         setAllDocuments(data);
+      } else {
+        const error = await response.json();
+        console.error('Error response:', error);
       }
     } catch (error) {
       console.error('Error loading all documents:', error);
@@ -5423,7 +5438,10 @@ const DocumentsManagementContent = () => {
                         {doc.sender?.name} ({doc.sender?.employeeCode})
                       </span>
                       <span>
-                        {format(new Date(doc.createdAt), "d 'de' MMMM, yyyy", { locale: es })}
+                        {doc.createdAt || doc.created_at 
+                          ? format(new Date(doc.createdAt || doc.created_at), "d 'de' MMMM, yyyy", { locale: es })
+                          : 'Fecha no disponible'
+                        }
                       </span>
                     </div>
                   </div>
@@ -5534,6 +5552,7 @@ const DocumentsManagementContent = () => {
                   onChange={(e) => setFilters({ ...filters, year: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-brand-light focus:border-brand-light"
                 >
+                  <option value="">Todos los años</option>
                   {[...Array(5)].map((_, i) => {
                     const year = new Date().getFullYear() - i;
                     return <option key={year} value={year}>{year}</option>;
@@ -5578,8 +5597,8 @@ const DocumentsManagementContent = () => {
                     employeeId: '',
                     documentType: '',
                     month: '',
-                    year: new Date().getFullYear().toString(),
-                    direction: 'admin_to_employee',
+                    year: '',
+                    direction: '',
                     search: ''
                   })}
                   className="w-full px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
@@ -5634,7 +5653,10 @@ const DocumentsManagementContent = () => {
                             }
                           </span>
                           <span>
-                            {format(new Date(doc.createdAt), "d 'de' MMMM, yyyy", { locale: es })}
+                            {doc.createdAt || doc.created_at 
+                              ? format(new Date(doc.createdAt || doc.created_at), "d 'de' MMMM, yyyy", { locale: es })
+                              : 'Fecha no disponible'
+                            }
                           </span>
                           {doc.reviewedAt && (
                             <span className="flex items-center text-green-600">
@@ -5846,7 +5868,11 @@ const DocumentsManagementContent = () => {
                 <div className="text-sm text-gray-600 space-y-1">
                   <p><strong>De:</strong> {selectedDocument.sender?.name} ({selectedDocument.sender?.employeeCode})</p>
                   <p><strong>Tipo:</strong> {getDocumentTypeLabel(selectedDocument.documentType)}</p>
-                  <p><strong>Fecha:</strong> {format(new Date(selectedDocument.createdAt), "d 'de' MMMM, yyyy", { locale: es })}</p>
+                  <p><strong>Fecha:</strong> {
+                    selectedDocument.createdAt || selectedDocument.created_at 
+                      ? format(new Date(selectedDocument.createdAt || selectedDocument.created_at), "d 'de' MMMM, yyyy", { locale: es })
+                      : 'Fecha no disponible'
+                  }</p>
                   {selectedDocument.description && (
                     <p><strong>Descripción:</strong> {selectedDocument.description}</p>
                   )}

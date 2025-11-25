@@ -11,14 +11,16 @@ router.get('/', authMiddleware, async (req, res) => {
     
     const conversations = await AIConversation.findAll({
       where: { employeeId },
-      order: [['lastMessageAt', 'DESC']],
+      order: [['last_message_at', 'DESC']],
       attributes: ['id', 'title', 'userRole', 'lastMessageAt', 'createdAt']
     });
 
     res.json(conversations);
   } catch (error) {
     console.error('Error fetching conversations:', error);
-    res.status(500).json({ error: 'Error al obtener conversaciones' });
+    console.error('Error details:', error.message);
+    console.error('Error stack:', error.stack);
+    res.status(500).json({ error: 'Error al obtener conversaciones', details: error.message });
   }
 });
 
