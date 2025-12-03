@@ -45,8 +45,8 @@
     "wait-on": "^9.0.1"
   },
   "build": {
-    "appId": "com.jarana.registro-horario",
-    "productName": "JARANA - Registro Horario",
+    "appId": "com.AliadaDigital.registro-horario",
+    "productName": "AliadaDigital - Registro Horario",
     "directories": {
       "output": "dist-electron"
     },

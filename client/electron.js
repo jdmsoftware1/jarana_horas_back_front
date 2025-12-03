@@ -18,7 +18,7 @@ function createWindow() {
       webSecurity: true
     },
     icon: path.join(__dirname, 'assets/icon.png'), // Opcional: añadir icono
-    title: 'JARANA - Sistema de Registro Horario',
+    title: 'AliadaDigital - Sistema de Registro Horario',
     show: false, // No mostrar hasta que esté listo
     titleBarStyle: 'default'
   });
@@ -81,14 +81,14 @@ function createMenu() {
       label: 'Ayuda',
       submenu: [
         {
-          label: 'Acerca de JARANA',
+          label: 'Acerca de AliadaDigital',
           click: () => {
             // Mostrar información de la aplicación
             const { dialog } = require('electron');
             dialog.showMessageBox(mainWindow, {
               type: 'info',
-              title: 'Acerca de JARANA',
-              message: 'JARANA - Sistema de Registro Horario',
+              title: 'Acerca de AliadaDigital',
+              message: 'AliadaDigital - Sistema de Registro Horario',
               detail: 'Versión 1.0.0\nSistema completo de gestión de horarios para empresas.'
             });
           }

@@ -147,8 +147,8 @@ const EmployeeKioskPage = () => {
           <div className="text-center mb-8">
             <div className="flex justify-center mb-4">
               <img 
-                src="/images/logo_jarana.jpg" 
-                alt="Jarana Logo" 
+                src="/images/logo_AliadaDigital.jpg" 
+                alt="AliadaDigital Logo" 
                 className="h-16 w-16 rounded-full object-cover shadow-lg"
               />
             </div>

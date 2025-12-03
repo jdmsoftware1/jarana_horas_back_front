@@ -1,8 +1,8 @@
-# 🎯 CONTEXT PROMPT - Sistema de Registro Horario JARANA
+# 🎯 CONTEXT PROMPT - Sistema de Registro Horario AliadaDigital
 
 ## 📋 INFORMACIÓN DEL PROYECTO
 
-**Nombre**: Sistema de Registro Horario JARANA  
+**Nombre**: Sistema de Registro Horario AliadaDigital  
 **Tipo**: Aplicación web full-stack para gestión de recursos humanos  
 **Estado**: Producción - Desplegado en Render  
 **Versión**: 1.1.0  
@@ -12,9 +12,9 @@
 
 ## 🌐 URLS DE PRODUCCIÓN
 
-**Backend**: https://jarana-horas-back.onrender.com  
-**Frontend**: https://jarana-horas-back-front-1.onrender.com  
-**Base de Datos**: PostgreSQL en Render (jarana-registro-db)
+**Backend**: https://AliadaDigital-horas-back.onrender.com  
+**Frontend**: https://AliadaDigital-horas-back-front-1.onrender.com  
+**Base de Datos**: PostgreSQL en Render (AliadaDigital-registro-db)
 
 **Desarrollo Local**:
 - Backend: http://localhost:3000
@@ -240,7 +240,7 @@ registro_horario/
 - Configuración general
 - Logs y auditoría
 
-### **5. 🤖 Asistente IA (JARANA AI)**
+### **5. 🤖 Asistente IA (AliadaDigital AI)**
 
 #### **Características**
 - RAG (Retrieval Augmented Generation)
@@ -513,7 +513,7 @@ OPENAI_API_KEY=sk-<api_key>
 VITE_API_URL=https://backend.onrender.com
 
 # Configuración
-VITE_APP_NAME=Jarana Registro Horario
+VITE_APP_NAME=AliadaDigital Registro Horario
 VITE_ENVIRONMENT=production|development
 
 # Feature Flags

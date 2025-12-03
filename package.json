@@ -1,5 +1,5 @@
 {
-  "name": "jarana-registro-horario",
+  "name": "AliadaDigital-registro-horario",
   "version": "1.0.4",
   "description": "Sistema de registro horario unificado con Google OAuth - Multi-tenant",
   "main": "src/index.js",

@@ -67,7 +67,7 @@ AUTHORIZED_DOMAIN=example.com
 VITE_API_URL=https://<tu-backend>.onrender.com
 
 # Configuración de la App
-VITE_APP_NAME=Jarana Registro Horario
+VITE_APP_NAME=AliadaDigital Registro Horario
 VITE_ENVIRONMENT=production
 
 # Feature Flags
@@ -86,7 +86,7 @@ VITE_ENABLE_AI_UTILS=true
 3. Configurar:
 
 ```yaml
-Name: jarana-registro-backend
+Name: AliadaDigital-registro-backend
 Region: Frankfurt (EU Central)
 Branch: main o master
 Root Directory: (vacío)
@@ -118,7 +118,7 @@ Para `DATABASE_URL`:
 3. Configurar:
 
 ```yaml
-Name: jarana-registro-frontend
+Name: AliadaDigital-registro-frontend
 Branch: main o master
 Root Directory: client
 Build Command: npm install && npm run build
@@ -151,9 +151,9 @@ Esto permite que React Router maneje las rutas del lado del cliente.
 2. Configurar:
 
 ```yaml
-Name: jarana-registro-db
-Database: jarana_registro
-User: jarana_user
+Name: AliadaDigital-registro-db
+Database: AliadaDigital_registro
+User: AliadaDigital_user
 Region: Frankfurt (mismo que el backend)
 Plan: Free
 ```
@@ -281,7 +281,7 @@ curl -H "Origin: https://<tu-frontend>.onrender.com" \
                ▼
 ┌─────────────────────────────────────────────┐
 │  💾 PostgreSQL Database                     │
-│  jarana-registro-db                         │
+│  AliadaDigital-registro-db                         │
 │                                             │
 │  - Datos persistentes                       │
 │  - Conexión: Internal Database URL         │

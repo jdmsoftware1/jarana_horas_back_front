@@ -104,8 +104,8 @@ router.post('/employees',
 
       // Generar secreto TOTP
       const totpSecret = speakeasy.generateSecret({
-        name: `Jarana - ${name}`,
-        issuer: 'Jarana Registro Horario'
+        name: `AliadaDigital - ${name}`,
+        issuer: 'AliadaDigital Registro Horario'
       });
 
       // Crear empleado
@@ -160,8 +160,8 @@ router.post('/employees/:id/regenerate-totp', async (req, res) => {
 
     // Generar nuevo secreto TOTP
     const totpSecret = speakeasy.generateSecret({
-      name: `Jarana - ${employee.name}`,
-      issuer: 'Jarana Registro Horario'
+      name: `AliadaDigital - ${employee.name}`,
+      issuer: 'AliadaDigital Registro Horario'
     });
 
     // Generar QR code

@@ -1,4 +1,4 @@
-# 🔄 UPDATES - Sistema JARANA
+# 🔄 UPDATES - Sistema AliadaDigital
 
 ## Historial Técnico de Actualizaciones
 
@@ -12,9 +12,9 @@
 **Descripción:** Sistema desplegado exitosamente en Render con backend, frontend y base de datos PostgreSQL.
 
 **Componentes Desplegados:**
-- Backend (Web Service): `https://jarana-horas-back.onrender.com`
-- Frontend (Static Site): `https://jarana-horas-back-front-1.onrender.com`
-- PostgreSQL Database: `jarana-registro-db`
+- Backend (Web Service): `https://AliadaDigital-horas-back.onrender.com`
+- Frontend (Static Site): `https://AliadaDigital-horas-back-front-1.onrender.com`
+- PostgreSQL Database: `AliadaDigital-registro-db`
 
 **Configuración Implementada:**
 - ✅ Variables de entorno configuradas para producción
@@ -76,22 +76,22 @@ publicDir: 'public',
 ```
 http://localhost:5173
 http://localhost:3000
-https://jarana-horas-back.onrender.com
-https://jarana-horas-back-front-1.onrender.com
+https://AliadaDigital-horas-back.onrender.com
+https://AliadaDigital-horas-back-front-1.onrender.com
 ```
 
 **Authorized redirect URIs:**
 ```
 http://localhost:3000/auth/google/callback
-https://jarana-horas-back.onrender.com/auth/google/callback
+https://AliadaDigital-horas-back.onrender.com/auth/google/callback
 ```
 
 **Variables de Entorno Configuradas:**
 ```bash
 # Backend
-GOOGLE_CALLBACK_URL=https://jarana-horas-back.onrender.com/auth/google/callback
-FRONTEND_URL=https://jarana-horas-back-front-1.onrender.com
-CLIENT_URL=https://jarana-horas-back-front-1.onrender.com
+GOOGLE_CALLBACK_URL=https://AliadaDigital-horas-back.onrender.com/auth/google/callback
+FRONTEND_URL=https://AliadaDigital-horas-back-front-1.onrender.com
+CLIENT_URL=https://AliadaDigital-horas-back-front-1.onrender.com
 ```
 
 **Correcciones Realizadas:**
@@ -120,7 +120,7 @@ CLIENT_URL=https://jarana-horas-back-front-1.onrender.com
 
 #### Backend (Web Service)
 ```yaml
-Name: jarana-horas-back
+Name: AliadaDigital-horas-back
 Runtime: Node
 Root Directory: (vacío)
 Build Command: npm install
@@ -148,7 +148,7 @@ Branch: master
 
 #### Frontend (Static Site)
 ```yaml
-Name: jarana-horas-back-front-1
+Name: AliadaDigital-horas-back-front-1
 Root Directory: client
 Build Command: npm install && npm run build
 Publish Directory: dist
@@ -156,8 +156,8 @@ Branch: master
 ```
 
 **Variables de Entorno (5):**
-- VITE_API_URL=https://jarana-horas-back.onrender.com
-- VITE_APP_NAME=Jarana Registro Horario
+- VITE_API_URL=https://AliadaDigital-horas-back.onrender.com
+- VITE_APP_NAME=AliadaDigital Registro Horario
 - VITE_ENVIRONMENT=production
 - VITE_ENABLE_AI_CHAT=true
 - VITE_ENABLE_AI_UTILS=true
@@ -171,9 +171,9 @@ Action: Rewrite
 
 #### PostgreSQL Database
 ```yaml
-Name: jarana-registro-db
-Database: jarana_registro
-User: jarana_user
+Name: AliadaDigital-registro-db
+Database: AliadaDigital_registro
+User: AliadaDigital_user
 Region: Frankfurt (EU Central)
 Plan: Free
 ```
@@ -412,7 +412,7 @@ Plan: Free
 
 ### 👥 CONTRIBUIDORES
 
-- Desarrollo y Deployment: Equipo JARANA
+- Desarrollo y Deployment: Equipo AliadaDigital
 - Fecha de release: 06-07 de Noviembre 2024
 - Versión: 1.1.0
 
@@ -434,7 +434,7 @@ Plan: Free
 
 ## RESUMEN EJECUTIVO v1.1.0
 
-La versión 1.1.0 marca el primer deployment exitoso del sistema JARANA en producción usando Render. Se han configurado tres servicios principales (backend, frontend y base de datos) con todas las variables de entorno necesarias, Google OAuth funcionando correctamente, y se han corregido múltiples bugs relacionados con rutas, assets y redirects.
+La versión 1.1.0 marca el primer deployment exitoso del sistema AliadaDigital en producción usando Render. Se han configurado tres servicios principales (backend, frontend y base de datos) con todas las variables de entorno necesarias, Google OAuth funcionando correctamente, y se han corregido múltiples bugs relacionados con rutas, assets y redirects.
 
 Se ha creado documentación completa (1,500+ líneas) que cubre todo el proceso de deployment, configuración de Google OAuth, y setup del proyecto tanto en desarrollo como en producción.
 
@@ -492,7 +492,7 @@ El sistema está ahora completamente funcional en producción con HTTPS, autenti
 
 #### 3. Base de Conocimiento Inicial
 **Documentos Creados:**
-- sistema_jarana.txt (81 líneas)
+- sistema_AliadaDigital.txt (81 líneas)
 - guia_uso_sistema.txt (450+ líneas)
 - preguntas_frecuentes.txt (400+ líneas)
 - README.md (knowledge)

@@ -19,7 +19,7 @@ describe('AIChat', () => {
   test('renders chat interface correctly', () => {
     render(<AIChat employee={mockEmployee} />);
     
-    expect(screen.getByText('Asistente IA Jarana')).toBeInTheDocument();
+    expect(screen.getByText('Asistente IA AliadaDigital')).toBeInTheDocument();
     expect(screen.getByPlaceholderText('Escribe tu mensaje...')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /enviar/i })).toBeInTheDocument();
   });

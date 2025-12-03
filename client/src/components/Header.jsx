@@ -10,13 +10,13 @@ const Header = () => {
         <div className="flex items-center justify-between">
           <div className="flex items-center cursor-pointer" onClick={() => navigate('/')}>
             <img 
-              src="/images/logo_jarana.jpg" 
+              src="/images/logo_AliadaDigital.jpg" 
               alt="Logo" 
               className="h-12 w-12 rounded-full object-cover"
             />
             <div className="ml-3">
               <h1 className="text-2xl font-bold text-brand-cream font-serif">
-                {import.meta.env.VITE_COMPANY_NAME || 'Jarana'}
+                {import.meta.env.VITE_COMPANY_NAME || 'AliadaDigital'}
               </h1>
               <p className="text-sm text-brand-accent">
                 Sistema de Registro Horario

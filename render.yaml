@@ -1,7 +1,7 @@
 services:
   # Backend API
   - type: web
-    name: jarana-registro-backend
+    name: AliadaDigital-registro-backend
     runtime: node
     buildCommand: npm install
     startCommand: npm start
@@ -12,13 +12,13 @@ services:
         value: 3000
       - key: DATABASE_URL
         fromDatabase:
-          name: jarana-registro-db
+          name: AliadaDigital-registro-db
           property: connectionString
       # Las demás variables se configurarán en el dashboard de Render
 
   # Frontend (Static Site)
   - type: web
-    name: jarana-registro-frontend
+    name: AliadaDigital-registro-frontend
     runtime: static
     buildCommand: cd client && npm install && npm run build
     staticPublishPath: ./client/dist
@@ -28,10 +28,10 @@ services:
         destination: /index.html
     envVars:
       - key: VITE_API_URL
-        value: https://jarana-registro-backend.onrender.com
+        value: https://AliadaDigital-registro-backend.onrender.com
 
 # Base de datos PostgreSQL
 databases:
-  - name: jarana-registro-db
-    databaseName: jarana_registro
-    user: jarana_user
+  - name: AliadaDigital-registro-db
+    databaseName: AliadaDigital_registro
+    user: AliadaDigital_user

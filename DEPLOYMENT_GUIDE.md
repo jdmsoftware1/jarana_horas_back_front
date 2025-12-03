@@ -1,8 +1,8 @@
-# 🚀 Guía de Despliegue DEMO - Sistema JARANA
+# 🚀 Guía de Despliegue DEMO - Sistema AliadaDigital
 
 ## 📋 Resumen
 
-Esta guía te ayudará a desplegar una demo completa del sistema JARANA usando:
+Esta guía te ayudará a desplegar una demo completa del sistema AliadaDigital usando:
 - **Backend**: Render (gratis)
 - **Frontend**: Netlify (gratis)
 - **Base de Datos**: Neon PostgreSQL (branch demo)
@@ -23,7 +23,7 @@ Esta guía te ayudará a desplegar una demo completa del sistema JARANA usando:
 ### **Paso 3: Configurar el servicio**
 
 **Configuración básica:**
-- **Name**: `jarana-demo-api`
+- **Name**: `AliadaDigital-demo-api`
 - **Region**: Frankfurt (o el más cercano)
 - **Branch**: `main` (o la que uses)
 - **Root Directory**: `app/back`
@@ -55,10 +55,10 @@ KIOSK_URL=https://tu-app.netlify.app
 ### **Paso 5: Desplegar**
 1. Haz clic en "Create Web Service"
 2. Espera 5-10 minutos
-3. Tu API estará en: `https://jarana-demo-api.onrender.com`
+3. Tu API estará en: `https://AliadaDigital-demo-api.onrender.com`
 
 ### **Paso 6: Verificar**
-Visita: `https://jarana-demo-api.onrender.com/health`
+Visita: `https://AliadaDigital-demo-api.onrender.com/health`
 
 Deberías ver:
 ```json
@@ -81,7 +81,7 @@ Deberías ver:
 Antes de desplegar, crea el archivo `.env.production` en `app/front/`:
 
 ```env
-VITE_API_URL=https://jarana-demo-api.onrender.com/api
+VITE_API_URL=https://AliadaDigital-demo-api.onrender.com/api
 ```
 
 **⚠️ IMPORTANTE**: Asegúrate de que este archivo NO esté en `.gitignore` para producción, o configúralo en Netlify.
@@ -97,7 +97,7 @@ VITE_API_URL=https://jarana-demo-api.onrender.com/api
    - **Publish directory**: `app/front/dist`
 4. En "Environment variables" añade:
    ```
-   VITE_API_URL=https://jarana-demo-api.onrender.com/api
+   VITE_API_URL=https://AliadaDigital-demo-api.onrender.com/api
    ```
 5. Haz clic en "Deploy site"
 
@@ -183,8 +183,8 @@ Desde tu backend desplegado, la conexión debería funcionar automáticamente.
 ### **URLs de tu demo:**
 
 - **Frontend**: `https://tu-app.netlify.app`
-- **Backend API**: `https://jarana-demo-api.onrender.com/api`
-- **Health Check**: `https://jarana-demo-api.onrender.com/health`
+- **Backend API**: `https://AliadaDigital-demo-api.onrender.com/api`
+- **Health Check**: `https://AliadaDigital-demo-api.onrender.com/health`
 
 ---
 
@@ -216,7 +216,7 @@ Desde tu backend desplegado, la conexión debería funcionar automáticamente.
 
 ### **1. Datos de prueba**
 Crea usuarios de ejemplo con credenciales fáciles:
-- Usuario: `demo@jarana.com`
+- Usuario: `demo@AliadaDigital.com`
 - PIN: `1234`
 
 ### **2. Documentación de IA**
@@ -255,7 +255,7 @@ git push
 ### **Frontend (Netlify)**
 ```bash
 # 1. Crear .env.production
-echo "VITE_API_URL=https://jarana-demo-api.onrender.com/api" > app/front/.env.production
+echo "VITE_API_URL=https://AliadaDigital-demo-api.onrender.com/api" > app/front/.env.production
 
 # 2. Push a GitHub
 git add .

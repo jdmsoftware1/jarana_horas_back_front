@@ -26,12 +26,12 @@ const Navbar = () => {
           <div className="flex items-center">
             <div className="flex-shrink-0 flex items-center">
               <img 
-                src="/images/logo_jarana.jpg" 
-                alt="Jarana Logo" 
+                src="/images/logo_AliadaDigital.jpg" 
+                alt="AliadaDigital Logo" 
                 className="h-10 w-10 rounded-full object-cover"
               />
               <span className="ml-3 text-xl font-bold text-brand-cream font-serif">
-                Jarana
+                AliadaDigital
               </span>
               <span className="ml-2 text-sm text-brand-accent font-sans">
                 Registro Horario

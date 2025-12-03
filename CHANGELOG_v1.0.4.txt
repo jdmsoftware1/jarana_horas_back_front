@@ -1,4 +1,4 @@
-# 📋 Novedades - Sistema JARANA v1.0.4
+# 📋 Novedades - Sistema AliadaDigital v1.0.4
 
 ## Versión 1.0.4 - 25 de Noviembre 2025
 
@@ -429,4 +429,4 @@ Pregunta: "¿Cómo solicito vacaciones?"
 
 ---
 
-**Desarrollado con ❤️ para JARANA**
+**Desarrollado con ❤️ para AliadaDigital**

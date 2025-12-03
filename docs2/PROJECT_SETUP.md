@@ -38,8 +38,8 @@ git --version
 ### **Paso 1: Clonar Repositorio**
 
 ```bash
-git clone https://github.com/tu-usuario/jarana-registro.git
-cd jarana-registro
+git clone https://github.com/tu-usuario/AliadaDigital-registro.git
+cd AliadaDigital-registro
 ```
 
 ### **Paso 2: Instalar Dependencias del Backend**
@@ -78,11 +78,11 @@ Editar `client/.env` con tus valores
 
 ```bash
 # Crear base de datos
-createdb jarana_registro
+createdb AliadaDigital_registro
 
 # O usando psql
 psql -U postgres
-CREATE DATABASE jarana_registro;
+CREATE DATABASE AliadaDigital_registro;
 \q
 ```
 
@@ -135,9 +135,9 @@ sudo systemctl start postgresql
 #### **Opción 2: Docker**
 
 ```bash
-docker run --name jarana-postgres \
+docker run --name AliadaDigital-postgres \
   -e POSTGRES_PASSWORD=postgres \
-  -e POSTGRES_DB=jarana_registro \
+  -e POSTGRES_DB=AliadaDigital_registro \
   -p 5432:5432 \
   -d postgres:14
 ```
@@ -146,7 +146,7 @@ docker run --name jarana-postgres \
 
 ```bash
 # Desarrollo local
-DATABASE_URL=postgresql://postgres:postgres@localhost:5432/jarana_registro
+DATABASE_URL=postgresql://postgres:postgres@localhost:5432/AliadaDigital_registro
 
 # Producción (Render)
 DATABASE_URL=<Internal Database URL desde Render>
@@ -181,7 +181,7 @@ PORT=3000
 # ============================================
 # BASE DE DATOS
 # ============================================
-DATABASE_URL=postgresql://postgres:postgres@localhost:5432/jarana_registro
+DATABASE_URL=postgresql://postgres:postgres@localhost:5432/AliadaDigital_registro
 
 # ============================================
 # SEGURIDAD
@@ -240,7 +240,7 @@ VITE_API_URL=http://localhost:3000
 # ============================================
 # CONFIGURACIÓN
 # ============================================
-VITE_APP_NAME=Jarana Registro Horario
+VITE_APP_NAME=AliadaDigital Registro Horario
 VITE_ENVIRONMENT=development
 
 # ============================================
@@ -255,7 +255,7 @@ VITE_ENABLE_AI_UTILS=true
 ## 📁 ESTRUCTURA DEL PROYECTO
 
 ```
-jarana-registro/
+AliadaDigital-registro/
 ├── client/                      # Frontend (React + Vite)
 │   ├── public/                  # Archivos estáticos
 │   │   ├── images/              # Imágenes

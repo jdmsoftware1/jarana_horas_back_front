@@ -46,7 +46,7 @@ if (process.env.SESSION_SECRET && process.env.SESSION_SECRET.length < 32) {
  * Configuración de la empresa (Multi-tenant)
  */
 export const companyConfig = {
-  name: process.env.COMPANY_NAME || 'Jarana',
+  name: process.env.COMPANY_NAME || 'AliadaDigital',
   logoUrl: process.env.COMPANY_LOGO_URL || '/assets/logo.png',
   colors: {
     primary: process.env.PRIMARY_COLOR || '#8B7355',

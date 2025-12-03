@@ -58,14 +58,14 @@ export const validateOrigin = (allowedOrigins) => {
 // Middleware para rutas de admin solamente
 export const adminOriginOnly = validateOrigin([
   process.env.ADMIN_URL || 'http://localhost:5174',
-  /^https:\/\/admin\.jarana\./,
+  /^https:\/\/admin\.AliadaDigital\./,
   /^https:\/\/.*-admin\.netlify\.app$/
 ]);
 
 // Middleware para rutas de kiosk solamente  
 export const kioskOriginOnly = validateOrigin([
   process.env.KIOSK_URL || 'http://localhost:5175',
-  /^https:\/\/kiosk\.jarana\./,
+  /^https:\/\/kiosk\.AliadaDigital\./,
   /^https:\/\/.*-kiosk\.netlify\.app$/
 ]);
 
