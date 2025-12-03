@@ -1,8 +1,8 @@
-# CONSULTAS DE HORAS TRABAJADAS - SISTEMA JARANA
+# CONSULTAS DE HORAS TRABAJADAS - SISTEMA AliadaDigital
 
 ## ¿Qué son las horas trabajadas?
 
-El sistema JARANA calcula automáticamente las horas trabajadas de cada empleado basándose en sus registros de entrada (checkin) y salida (checkout).
+El sistema AliadaDigital calcula automáticamente las horas trabajadas de cada empleado basándose en sus registros de entrada (checkin) y salida (checkout).
 
 ## Tipos de horas
 

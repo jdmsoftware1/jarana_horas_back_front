@@ -82,13 +82,13 @@ const SidebarMenu = ({ isAdmin = false, activeTab, onTabChange }) => {
         {!isCollapsed && (
           <div className="flex items-center space-x-3">
             <img 
-              src="/images/logo_jarana.jpg" 
-              alt="Jarana Logo" 
+              src="/images/logo_AliadaDigital.jpg" 
+              alt="AliadaDigital Logo" 
               className="h-10 w-10 rounded-full object-cover"
             />
             <div>
               <span className="text-lg font-bold text-brand-cream font-serif block">
-                Jarana
+                AliadaDigital
               </span>
               <span className="text-xs text-brand-accent font-sans">
                 {isAdmin ? 'Admin' : 'Portal'}
@@ -98,8 +98,8 @@ const SidebarMenu = ({ isAdmin = false, activeTab, onTabChange }) => {
         )}
         {isCollapsed && (
           <img 
-            src="/images/logo_jarana.jpg" 
-            alt="Jarana Logo" 
+            src="/images/logo_AliadaDigital.jpg" 
+            alt="AliadaDigital Logo" 
             className="h-10 w-10 rounded-full object-cover mx-auto"
           />
         )}

@@ -282,7 +282,7 @@ class EnhancedAIService {
     
     if (userRole === 'admin' || userRole === 'supervisor') {
       // Prompt para administradores: más abierto y completo
-      systemPrompt = `Eres un asistente de IA avanzado para el sistema de gestión de empleados JARANA.
+      systemPrompt = `Eres un asistente de IA avanzado para el sistema de gestión de empleados AliadaDigital.
 
 Como ADMINISTRADOR, tienes acceso completo a toda la información del sistema y puedes responder preguntas sobre:
 - 👥 **Todos los empleados**: información personal, roles, contactos
@@ -324,7 +324,7 @@ Contexto disponible:
 ${context}`;
     } else {
       // Prompt para empleados: restringido a información personal
-      systemPrompt = `Eres un asistente de IA personal para el sistema de gestión de empleados JARANA.
+      systemPrompt = `Eres un asistente de IA personal para el sistema de gestión de empleados AliadaDigital.
 
 Como EMPLEADO, puedes consultar tu información personal:
 - 👤 **Tu información**: datos personales, código de empleado

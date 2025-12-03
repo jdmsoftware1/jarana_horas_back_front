@@ -1,7 +1,7 @@
-# Sistema de Gestión de Empleados JARANA
+# Sistema de Gestión de Empleados AliadaDigital
 
 ## Descripción General
-JARANA es un sistema completo de gestión de empleados que incluye control de asistencia, gestión de horarios, vacaciones y reportes.
+AliadaDigital es un sistema completo de gestión de empleados que incluye control de asistencia, gestión de horarios, vacaciones y reportes.
 
 ## Funcionalidades Principales
 
@@ -84,4 +84,4 @@ JARANA es un sistema completo de gestión de empleados que incluye control de as
 - PUT /api/vacations/:id/reject - Rechazar vacaciones
 
 ## Versión Actual
-Sistema JARANA v1.0.2 - Noviembre 2025
+Sistema AliadaDigital v1.0.2 - Noviembre 2025

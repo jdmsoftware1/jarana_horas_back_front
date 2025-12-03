@@ -14,7 +14,7 @@ const __dirname = path.dirname(__filename);
 
 // Configuración
 const API_URL = process.env.API_URL || 'http://localhost:3000/api';
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@jarana.com';
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@AliadaDigital.com';
 const ADMIN_PIN = process.env.ADMIN_PIN || '1234';
 
 let adminToken = '';
@@ -421,7 +421,7 @@ async function runTests() {
   console.log('\n');
   log('╔════════════════════════════════════════════════════════════╗', 'cyan');
   log('║                                                            ║', 'cyan');
-  log('║          🧪 TEST SUITE - JARANA v1.0.4                    ║', 'cyan');
+  log('║          🧪 TEST SUITE - AliadaDigital v1.0.4                    ║', 'cyan');
   log('║                                                            ║', 'cyan');
   log('╚════════════════════════════════════════════════════════════╝', 'cyan');
   console.log('\n');

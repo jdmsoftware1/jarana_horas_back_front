@@ -1,4 +1,4 @@
-# 📋 Novedades - Sistema JARANA v1.0.2
+# 📋 Novedades - Sistema AliadaDigital v1.0.2
 
 ## Versión 1.0.2 - 25 de Noviembre 2025
 
@@ -40,7 +40,7 @@
 
 #### 3. 📖 Documentación Incluida
 El sistema ya viene con 3 documentos de ayuda:
-- **Sistema JARANA**: Descripción general
+- **Sistema AliadaDigital**: Descripción general
 - **Guía de Uso**: Instrucciones paso a paso de todo
 - **Preguntas Frecuentes**: Respuestas a dudas comunes
 
@@ -118,7 +118,7 @@ El sistema ya viene con 3 documentos de ayuda:
 ### 🆘 ¿Necesitas Ayuda?
 
 - **Usa el Chat de IA**: Pregúntale directamente
-- **Email**: soporte@jarana.com
+- **Email**: soporte@AliadaDigital.com
 - **Documentación**: Revisa los documentos incluidos
 
 ---

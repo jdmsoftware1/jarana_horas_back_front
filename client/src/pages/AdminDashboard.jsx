@@ -2018,7 +2018,7 @@ const SettingsContent = () => {
               </label>
               <input
                 type="text"
-                defaultValue="Jarana"
+                defaultValue="AliadaDigital"
                 className="w-full px-3 py-2 border border-neutral-mid/30 rounded-lg focus:border-brand-light focus:ring-0 focus:outline-none"
               />
             </div>

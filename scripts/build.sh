@@ -1,6 +1,6 @@
 #!/bin/bash
 
-echo "🚀 Building Jarana Registro Horario..."
+echo "🚀 Building AliadaDigital Registro Horario..."
 
 # Install backend dependencies
 echo "📦 Installing backend dependencies..."

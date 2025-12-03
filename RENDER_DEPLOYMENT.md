@@ -23,7 +23,7 @@ En producción, el backend sirve el frontend compilado.
 
 ### **2. Configuración del Servicio**
 
-**Name:** `jarana-registro-horario`
+**Name:** `AliadaDigital-registro-horario`
 
 **Region:** `Frankfurt (EU Central)` (o el más cercano)
 
@@ -83,7 +83,7 @@ PORT=3000
 CLIENT_URL=https://tu-app.onrender.com
 
 # Empresa (branding)
-COMPANY_NAME=Jarana
+COMPANY_NAME=AliadaDigital
 COMPANY_LOGO_URL=https://tu-logo.com/logo.png
 PRIMARY_COLOR=#8B4513
 SECONDARY_COLOR=#D2691E
@@ -280,7 +280,7 @@ npm start
 
 ## 🎯 **RESULTADO FINAL**
 
-**URL de producción:** `https://jarana-registro-horario.onrender.com`
+**URL de producción:** `https://AliadaDigital-registro-horario.onrender.com`
 
 **Funcionalidades:**
 - ✅ Login con Google OAuth

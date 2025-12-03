@@ -129,7 +129,7 @@ La aplicación no funcionaba en producción en Render Static Site debido a polí
 **Contenido:**
 ```
 /*
-  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://jarana-registro-back-front.onrender.com;
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://AliadaDigital-registro-back-front.onrender.com;
 ```
 
 **Estado:** ✅ Resuelto

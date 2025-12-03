@@ -19,7 +19,7 @@ export const SystemProvider = ({ children }) => {
 
   // Verificar si hay una sesión activa guardada
   useEffect(() => {
-    const savedSession = localStorage.getItem('jarana_system_session');
+    const savedSession = localStorage.getItem('AliadaDigital_system_session');
     if (savedSession) {
       const session = JSON.parse(savedSession);
       const now = new Date();
@@ -35,7 +35,7 @@ export const SystemProvider = ({ children }) => {
         setSessionStartTime(new Date(session.startTime));
       } else {
         // Limpiar sesión expirada
-        localStorage.removeItem('jarana_system_session');
+        localStorage.removeItem('AliadaDigital_system_session');
       }
     }
   }, []);
@@ -66,7 +66,7 @@ export const SystemProvider = ({ children }) => {
     setSessionStartTime(new Date());
     
     // Guardar en localStorage para persistencia
-    localStorage.setItem('jarana_system_session', JSON.stringify(sessionData));
+    localStorage.setItem('AliadaDigital_system_session', JSON.stringify(sessionData));
   };
 
   const deactivateSystem = () => {
@@ -75,7 +75,7 @@ export const SystemProvider = ({ children }) => {
     setSessionStartTime(null);
     
     // Limpiar localStorage
-    localStorage.removeItem('jarana_system_session');
+    localStorage.removeItem('AliadaDigital_system_session');
     
     console.log('🔴 Sistema desactivado');
   };

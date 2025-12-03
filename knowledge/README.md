@@ -1,4 +1,4 @@
-# 📚 Knowledge Base - Sistema JARANA
+# 📚 Knowledge Base - Sistema AliadaDigital
 
 Esta carpeta contiene documentos que la IA usa para responder preguntas.
 
@@ -19,7 +19,7 @@ Crea un nuevo archivo con extensión `.txt` en esta carpeta:
 
 ```
 knowledge/
-  ├── sistema_jarana.txt          (ya existe)
+  ├── sistema_AliadaDigital.txt          (ya existe)
   ├── politicas_empresa.txt       (crea este)
   ├── procedimientos_rrhh.txt     (crea este)
   └── preguntas_frecuentes.txt    (crea este)
@@ -69,7 +69,7 @@ Otro contenido...
 # Preguntas Frecuentes
 
 ## ¿Cómo solicito vacaciones?
-1. Accede al sistema JARANA
+1. Accede al sistema AliadaDigital
 2. Ve a la sección "Vacaciones"
 3. Selecciona las fechas
 4. Añade una razón
@@ -120,7 +120,7 @@ Respuesta:
   "initialized": true,
   "documentsCount": 15,
   "sources": [
-    "sistema_jarana.txt",
+    "sistema_AliadaDigital.txt",
     "politicas_empresa.txt",
     "preguntas_frecuentes.txt"
   ]
@@ -149,7 +149,7 @@ Respuesta:
 ### Con Documentos
 - "¿Cuál es la política de vacaciones?"
 - "¿Cómo solicito un permiso?"
-- "¿Qué es el sistema JARANA?"
+- "¿Qué es el sistema AliadaDigital?"
 
 ### Con Base de Datos
 - "¿Quién llegó tarde esta semana?"

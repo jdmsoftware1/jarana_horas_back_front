@@ -15,7 +15,7 @@ const AIChat = ({ userId, userRole = 'employee' }) => {
     {
       id: 1,
       type: 'ai',
-      content: '¡Hola! Soy tu asistente de IA de Jarana. Puedo ayudarte con consultas sobre horarios, vacaciones y registros. ¿En qué puedo ayudarte?',
+      content: '¡Hola! Soy tu asistente de IA de AliadaDigital. Puedo ayudarte con consultas sobre horarios, vacaciones y registros. ¿En qué puedo ayudarte?',
       timestamp: new Date()
     }
   ]);
@@ -183,7 +183,7 @@ const AIChat = ({ userId, userRole = 'employee' }) => {
       {
         id: 1,
         type: 'ai',
-        content: '¡Hola! Soy tu asistente de IA de Jarana. Puedo ayudarte con consultas sobre horarios, vacaciones y registros. ¿En qué puedo ayudarte?',
+        content: '¡Hola! Soy tu asistente de IA de AliadaDigital. Puedo ayudarte con consultas sobre horarios, vacaciones y registros. ¿En qué puedo ayudarte?',
         timestamp: new Date()
       }
     ]);
@@ -335,7 +335,7 @@ const AIChat = ({ userId, userRole = 'employee' }) => {
           )}
           <Bot className="h-5 w-5" />
           <span className="font-medium">
-            {showHistory ? 'Historial de Conversaciones' : 'Asistente IA Jarana'}
+            {showHistory ? 'Historial de Conversaciones' : 'Asistente IA AliadaDigital'}
           </span>
         </div>
         <div className="flex items-center space-x-2">

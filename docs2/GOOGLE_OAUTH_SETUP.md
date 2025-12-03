@@ -23,7 +23,7 @@
 2. Click en **"New Project"** o **"Nuevo Proyecto"**
 3. Configurar:
    ```
-   Project Name: Jarana Registro Horario
+   Project Name: AliadaDigital Registro Horario
    Organization: (opcional)
    Location: (opcional)
    ```
@@ -65,7 +65,7 @@ Seleccionar el tipo según tus necesidades:
 
 #### **App Information:**
 ```
-App name: Jarana Registro Horario
+App name: AliadaDigital Registro Horario
 User support email: tu-email@gmail.com
 App logo: (opcional, 120x120 px)
 ```
@@ -137,7 +137,7 @@ Si estás en modo "Testing", añadir usuarios de prueba:
 ### **Paso 3: Configurar Application Type**
 
 1. **Application type:** Web application
-2. **Name:** Jarana Registro Horario - Web Client
+2. **Name:** AliadaDigital Registro Horario - Web Client
 
 ---
 
@@ -193,12 +193,12 @@ https://tu-backend.onrender.com/auth/google/callback
 Authorized JavaScript origins:
   http://localhost:5173
   http://localhost:3000
-  https://jarana-horas-back.onrender.com
-  https://jarana-horas-front.onrender.com
+  https://AliadaDigital-horas-back.onrender.com
+  https://AliadaDigital-horas-front.onrender.com
 
 Authorized redirect URIs:
   http://localhost:3000/auth/google/callback
-  https://jarana-horas-back.onrender.com/auth/google/callback
+  https://AliadaDigital-horas-back.onrender.com/auth/google/callback
 ```
 
 Click en **"Create"**

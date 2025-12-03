@@ -42,13 +42,13 @@ const HomePage = () => {
         <div className="text-center mb-16">
           <div className="flex justify-center mb-6">
             <img 
-              src="/images/logo_jarana.jpg" 
-              alt="Jarana Logo" 
+              src="/images/logo_AliadaDigital.jpg" 
+              alt="AliadaDigital Logo" 
               className="h-24 w-24 rounded-full object-cover shadow-lg"
             />
           </div>
           <h1 className="text-5xl font-bold text-brand-cream font-serif mb-4">
-            Jarana
+            AliadaDigital
           </h1>
           <h2 className="text-2xl text-brand-accent mb-2">
             Sistema de Registro Horario

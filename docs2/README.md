@@ -1,8 +1,8 @@
-# 📚 DOCUMENTACIÓN JARANA - Sistema de Registro Horario
+# 📚 DOCUMENTACIÓN AliadaDigital - Sistema de Registro Horario
 
 ## 📋 ÍNDICE DE DOCUMENTOS
 
-Esta carpeta contiene toda la documentación actualizada del proyecto JARANA.
+Esta carpeta contiene toda la documentación actualizada del proyecto AliadaDigital.
 
 ---
 
@@ -256,10 +256,10 @@ Esta documentación cubre:
 - ✅ Troubleshooting
 - ✅ Mejores prácticas
 
-**Todo lo que necesitas para trabajar con JARANA está aquí.**
+**Todo lo que necesitas para trabajar con AliadaDigital está aquí.**
 
 ---
 
 **Última actualización:** 07/11/2024  
 **Versión de la documentación:** 1.0  
-**Mantenida por:** Equipo JARANA
+**Mantenida por:** Equipo AliadaDigital

@@ -28,12 +28,12 @@ const MainMenuPage = () => {
         <div className="container mx-auto px-4 text-center">
           <div className="flex justify-center mb-4">
             <img 
-              src="/images/logo_jarana.jpg" 
-              alt="Jarana Logo" 
+              src="/images/logo_AliadaDigital.jpg" 
+              alt="AliadaDigital Logo" 
               className="h-16 w-16 rounded-full object-cover"
             />
           </div>
-          <h1 className="text-5xl font-bold text-white mb-2 font-serif">Jarana</h1>
+          <h1 className="text-5xl font-bold text-white mb-2 font-serif">AliadaDigital</h1>
           <p className="text-xl text-white/80">Sistema de Registro Horario</p>
           <p className="text-lg text-white/60 mt-4">Selecciona tu tipo de acceso para continuar</p>
         </div>
