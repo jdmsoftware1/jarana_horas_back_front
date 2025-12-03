@@ -389,7 +389,11 @@ ${context}`;
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const startOfWeek = new Date(today);
-    startOfWeek.setDate(today.getDate() - today.getDay() + 1); // Monday
+    // Calcular el lunes de esta semana correctamente (domingo = 0, lunes = 1, etc.)
+    // Si es domingo (0), retroceder 6 días; si no, retroceder (día - 1) días
+    const dayOfWeekForHours = today.getDay();
+    const daysToMondayHours = dayOfWeekForHours === 0 ? 6 : dayOfWeekForHours - 1;
+    startOfWeek.setDate(today.getDate() - daysToMondayHours);
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
     try {
