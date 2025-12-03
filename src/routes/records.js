@@ -3,6 +3,7 @@ import { Op } from 'sequelize';
 import sequelize from '../config/database.js';
 import { Record, Employee } from '../models/index.js';
 import { authMiddleware, adminMiddleware } from '../middleware/authMiddleware.js';
+import { WeeklyScheduleService } from '../services/weeklyScheduleService.js';
 
 const router = express.Router();
 
@@ -515,31 +516,54 @@ router.get('/employee/:employeeId/hours-comparison', authMiddleware, async (req,
     };
     
     // Helper to calculate estimated hours from schedule
+    // Uses WeeklyScheduleService to get effective schedule considering:
+    // 1. Daily exceptions (highest priority)
+    // 2. Weekly schedules with templates
+    // 3. Base schedules (fallback)
     const calculateEstimatedHours = async (startDate, endDate) => {
       let totalMinutes = 0;
       const currentDate = new Date(startDate);
       
       while (currentDate < endDate) {
-        const dayOfWeek = currentDate.getDay();
+        const dateStr = currentDate.toISOString().split('T')[0];
         
-        // Try to get schedule from base schedules
-        const schedule = await Schedule.findOne({
-          where: { employeeId, dayOfWeek }
-        });
-        
-        if (schedule && schedule.isWorkingDay && schedule.startTime && schedule.endTime) {
-          const start = new Date(`1970-01-01T${schedule.startTime}`);
-          const end = new Date(`1970-01-01T${schedule.endTime}`);
-          let dayMinutes = (end - start) / (1000 * 60);
+        try {
+          // Get effective schedule for this date (considers weekly templates, exceptions, etc.)
+          const effectiveSchedule = await WeeklyScheduleService.getEffectiveScheduleForDate(employeeId, dateStr);
           
-          // Subtract break time if exists
-          if (schedule.breakStartTime && schedule.breakEndTime) {
-            const breakStart = new Date(`1970-01-01T${schedule.breakStartTime}`);
-            const breakEnd = new Date(`1970-01-01T${schedule.breakEndTime}`);
-            dayMinutes -= (breakEnd - breakStart) / (1000 * 60);
+          if (effectiveSchedule && effectiveSchedule.isWorkingDay) {
+            // Check if it's a split schedule (turno partido)
+            const templateDay = effectiveSchedule.data?.templateDay;
+            
+            if (templateDay && templateDay.isSplitSchedule && templateDay.morningStart && templateDay.morningEnd && templateDay.afternoonStart && templateDay.afternoonEnd) {
+              // Split schedule: morning + afternoon
+              const morningStart = new Date(`1970-01-01T${templateDay.morningStart}`);
+              const morningEnd = new Date(`1970-01-01T${templateDay.morningEnd}`);
+              const afternoonStart = new Date(`1970-01-01T${templateDay.afternoonStart}`);
+              const afternoonEnd = new Date(`1970-01-01T${templateDay.afternoonEnd}`);
+              
+              const morningMinutes = (morningEnd - morningStart) / (1000 * 60);
+              const afternoonMinutes = (afternoonEnd - afternoonStart) / (1000 * 60);
+              totalMinutes += morningMinutes + afternoonMinutes;
+            } else if (effectiveSchedule.startTime && effectiveSchedule.endTime) {
+              // Regular schedule
+              const start = new Date(`1970-01-01T${effectiveSchedule.startTime}`);
+              const end = new Date(`1970-01-01T${effectiveSchedule.endTime}`);
+              let dayMinutes = (end - start) / (1000 * 60);
+              
+              // Subtract break time if exists
+              if (effectiveSchedule.breakStartTime && effectiveSchedule.breakEndTime) {
+                const breakStart = new Date(`1970-01-01T${effectiveSchedule.breakStartTime}`);
+                const breakEnd = new Date(`1970-01-01T${effectiveSchedule.breakEndTime}`);
+                dayMinutes -= (breakEnd - breakStart) / (1000 * 60);
+              }
+              
+              totalMinutes += dayMinutes;
+            }
           }
-          
-          totalMinutes += dayMinutes;
+        } catch (error) {
+          console.error(`Error getting schedule for ${dateStr}:`, error);
+          // Continue with next day if there's an error
         }
         
         currentDate.setDate(currentDate.getDate() + 1);
