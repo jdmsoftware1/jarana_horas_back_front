@@ -442,7 +442,12 @@ const DashboardContent = ({ employee, setActiveTab }) => {
         
         // Calculate week hours (simplified)
         const weekStart = new Date();
-        weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+        // Calcular el lunes de esta semana correctamente (domingo = 0, lunes = 1, etc.)
+        // Si es domingo (0), retroceder 6 días; si no, retroceder (día - 1) días
+        const dayOfWeek = weekStart.getDay();
+        const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+        weekStart.setDate(weekStart.getDate() - daysToMonday);
+        weekStart.setHours(0, 0, 0, 0);
         const weekRecords = records.filter(r => 
           new Date(r.timestamp) >= weekStart
         );
@@ -643,7 +648,11 @@ const RecordsContent = ({ employee }) => {
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const weekStart = new Date(today);
-    weekStart.setDate(today.getDate() - today.getDay());
+    // Calcular el lunes de esta semana correctamente (domingo = 0, lunes = 1, etc.)
+    // Si es domingo (0), retroceder 6 días; si no, retroceder (día - 1) días
+    const dayOfWeek = today.getDay();
+    const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+    weekStart.setDate(today.getDate() - daysToMonday);
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
 
     switch (filter) {

@@ -385,7 +385,11 @@ router.get('/employee/:employeeId/hours-stats', authMiddleware, async (req, res)
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const startOfWeek = new Date(today);
-    startOfWeek.setDate(today.getDate() - today.getDay() + 1); // Monday
+    // Calcular el lunes de esta semana correctamente (domingo = 0, lunes = 1, etc.)
+    // Si es domingo (0), retroceder 6 días; si no, retroceder (día - 1) días
+    const dayOfWeekForStats = today.getDay();
+    const daysToMonday = dayOfWeekForStats === 0 ? 6 : dayOfWeekForStats - 1;
+    startOfWeek.setDate(today.getDate() - daysToMonday);
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     
     // Helper function to calculate hours from records
@@ -474,7 +478,11 @@ router.get('/employee/:employeeId/hours-comparison', authMiddleware, async (req,
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const startOfWeek = new Date(today);
-    startOfWeek.setDate(today.getDate() - today.getDay() + 1); // Monday
+    // Calcular el lunes de esta semana correctamente (domingo = 0, lunes = 1, etc.)
+    // Si es domingo (0), retroceder 6 días; si no, retroceder (día - 1) días
+    const dayOfWeekForComparison = today.getDay();
+    const daysToMondayComparison = dayOfWeekForComparison === 0 ? 6 : dayOfWeekForComparison - 1;
+    startOfWeek.setDate(today.getDate() - daysToMondayComparison);
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     
     // Helper to calculate actual worked hours

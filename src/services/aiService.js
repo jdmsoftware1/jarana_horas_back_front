@@ -375,7 +375,12 @@ class AIService {
         const thisWeekRecords = allRecords.filter(r => {
           const recordDate = new Date(r.timestamp);
           const weekStart = new Date();
-          weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+          // Calcular el lunes de esta semana correctamente (domingo = 0, lunes = 1, etc.)
+          // Si es domingo (0), retroceder 6 días; si no, retroceder (día - 1) días
+          const dayOfWeek = weekStart.getDay();
+          const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+          weekStart.setDate(weekStart.getDate() - daysToMonday);
+          weekStart.setHours(0, 0, 0, 0);
           return recordDate >= weekStart;
         });
         
@@ -678,7 +683,11 @@ Responde de forma directa y útil, usando los datos reales disponibles.`
   // Get weekly hours worked
   static async getWeeklyHours(employeeId) {
     const weekStart = new Date();
-    weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+    // Calcular el lunes de esta semana correctamente (domingo = 0, lunes = 1, etc.)
+    // Si es domingo (0), retroceder 6 días; si no, retroceder (día - 1) días
+    const dayOfWeek = weekStart.getDay();
+    const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+    weekStart.setDate(weekStart.getDate() - daysToMonday);
     weekStart.setHours(0, 0, 0, 0);
 
     const records = await Record.findAll({

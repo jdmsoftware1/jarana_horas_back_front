@@ -6,7 +6,7 @@
 **Tipo**: Aplicación web full-stack para gestión de recursos humanos  
 **Estado**: Producción - Desplegado en Render  
 **Versión**: 1.1.0  
-**Última Actualización**: 07/11/2024
+**Última Actualización**: 02/12/2024
 
 ---
 
@@ -399,6 +399,74 @@ PUT    /api/schedules/:id            # Actualizar
 DELETE /api/schedules/:id            # Eliminar
 ```
 
+### **Plantillas de Horarios** (`/api/schedule-templates`)
+```
+GET    /api/schedule-templates       # Listar plantillas
+POST   /api/schedule-templates       # Crear plantilla
+PUT    /api/schedule-templates/:id   # Actualizar plantilla
+DELETE /api/schedule-templates/:id   # Eliminar plantilla
+```
+
+### **Horarios Semanales** (`/api/weekly-schedules`)
+```
+GET    /api/weekly-schedules         # Listar horarios semanales
+POST   /api/weekly-schedules         # Crear horario semanal
+PUT    /api/weekly-schedules/:id     # Actualizar horario semanal
+DELETE /api/weekly-schedules/:id     # Eliminar horario semanal
+```
+
+### **Excepciones Diarias** (`/api/daily-exceptions`)
+```
+GET    /api/daily-exceptions         # Listar excepciones
+POST   /api/daily-exceptions         # Crear excepción
+PUT    /api/daily-exceptions/:id     # Actualizar excepción
+DELETE /api/daily-exceptions/:id     # Eliminar excepción
+```
+
+### **Programación Avanzada** (`/api/advanced-scheduling`)
+```
+GET    /api/advanced-scheduling      # Obtener programación avanzada
+POST   /api/advanced-scheduling      # Crear programación avanzada
+```
+
+### **Descansos en Horarios** (`/api/schedule-breaks`)
+```
+GET    /api/schedule-breaks          # Listar descansos
+POST   /api/schedule-breaks          # Crear descanso
+PUT    /api/schedule-breaks/:id      # Actualizar descanso
+DELETE /api/schedule-breaks/:id      # Eliminar descanso
+```
+
+### **Descansos Avanzados** (`/api/advanced-breaks`)
+```
+GET    /api/advanced-breaks          # Obtener descansos avanzados
+POST   /api/advanced-breaks          # Crear descanso avanzado
+```
+
+### **Categorías de Ausencias** (`/api/absence-categories`)
+```
+GET    /api/absence-categories       # Listar categorías
+POST   /api/absence-categories       # Crear categoría
+PUT    /api/absence-categories/:id   # Actualizar categoría
+DELETE /api/absence-categories/:id   # Eliminar categoría
+```
+
+### **Conversaciones IA** (`/api/ai-conversations`)
+```
+GET    /api/ai-conversations         # Listar conversaciones
+GET    /api/ai-conversations/:id     # Obtener conversación
+POST   /api/ai-conversations         # Crear conversación
+DELETE /api/ai-conversations/:id     # Eliminar conversación
+```
+
+### **Documentos** (`/api/documents`)
+```
+GET    /api/documents                # Listar documentos
+GET    /api/documents/:id            # Obtener documento
+POST   /api/documents                # Subir documento
+DELETE /api/documents/:id            # Eliminar documento
+```
+
 ---
 
 ## 🔐 VARIABLES DE ENTORNO
@@ -461,17 +529,20 @@ VITE_ENABLE_AI_UTILS=true
 ```javascript
 colors: {
   brand: {
-    dark: '#4A3728',      // Marrón oscuro
-    medium: '#8B7355',    // Marrón medio
-    light: '#D4C4B0',     // Beige claro
-    cream: '#F5E6D3',     // Crema
-    accent: '#4D5B36',    // Verde oliva
-    deep: '#2C1810',      // Marrón muy oscuro
+    dark: '#4A2900',      // Fondo principal
+    deep: '#2E1800',      // Sombras / contornos
+    medium: '#7A4E1E',    // Marrón medio
+    light: '#C47A3F',     // Acento principal (naranja terracota)
+    accent: '#D6B48D',    // Complementario cálido
+    cream: '#F8ECDC',     // Texto claro / logo
   },
   neutral: {
-    dark: '#1F2937',
-    mid: '#6B7280',
-    light: '#F3F4F6',
+    light: '#FAF6F3',     // Fondo de paneles / inputs
+    mid: '#BFB0A3',       // Placeholder / bordes suaves
+    dark: '#3B2C1E',      // Texto sobre fondos claros
+  },
+  accent: {
+    olive: '#4D5B36',     // Verde oliva oscuro
   }
 }
 ```
@@ -485,6 +556,14 @@ colors: {
 - Alerts y notificaciones
 - Loading spinners
 - Timeline visual
+
+### **Tipografía**
+```javascript
+fontFamily: {
+  sans: ['Inter', 'ui-sans-serif', 'system-ui'],
+  serif: ['Playfair Display', 'ui-serif', 'Georgia'],
+}
+```
 
 ---
 
@@ -676,7 +755,7 @@ npm test                 # Tests
 **IA**: ✅ RAG con Embeddings  
 **Documentación**: ✅ Completa  
 
-**Última Actualización**: 07/11/2024 08:30 AM
+**Última Actualización**: 02/12/2024
 
 ---
 
