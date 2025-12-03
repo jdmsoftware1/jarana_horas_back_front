@@ -3,6 +3,7 @@ import embeddingService from './embeddingService.js';
 import sequelize from '../config/database.js';
 import { Employee, Record, Schedule, Vacation, WeeklySchedule, ScheduleTemplate } from '../models/index.js';
 import { Op } from 'sequelize';
+import { WeeklyScheduleService } from './weeklyScheduleService.js';
 
 class EnhancedAIService {
   constructor() {
@@ -449,29 +450,54 @@ ${context}`;
       };
 
       // Función para calcular horas estimadas
+      // Usa WeeklyScheduleService para considerar:
+      // 1. Excepciones diarias (máxima prioridad)
+      // 2. Horarios semanales con plantillas
+      // 3. Horarios base (fallback)
       const calculateEstimatedHours = async (employeeId, startDate, endDate) => {
         let totalMinutes = 0;
         const currentDate = new Date(startDate);
 
         while (currentDate < endDate) {
-          const dayOfWeek = currentDate.getDay();
+          const dateStr = currentDate.toISOString().split('T')[0];
           
-          const schedule = await Schedule.findOne({
-            where: { employeeId, dayOfWeek }
-          });
+          try {
+            // Obtener horario efectivo para esta fecha
+            const effectiveSchedule = await WeeklyScheduleService.getEffectiveScheduleForDate(employeeId, dateStr);
+            
+            if (effectiveSchedule && effectiveSchedule.isWorkingDay) {
+              // Verificar si es turno partido
+              const templateDay = effectiveSchedule.data?.templateDay;
+              
+              if (templateDay && templateDay.isSplitSchedule && templateDay.morningStart && templateDay.morningEnd && templateDay.afternoonStart && templateDay.afternoonEnd) {
+                // Turno partido: mañana + tarde
+                const morningStart = new Date(`1970-01-01T${templateDay.morningStart}`);
+                const morningEnd = new Date(`1970-01-01T${templateDay.morningEnd}`);
+                const afternoonStart = new Date(`1970-01-01T${templateDay.afternoonStart}`);
+                const afternoonEnd = new Date(`1970-01-01T${templateDay.afternoonEnd}`);
+                
+                const morningMinutes = (morningEnd - morningStart) / (1000 * 60);
+                const afternoonMinutes = (afternoonEnd - afternoonStart) / (1000 * 60);
+                totalMinutes += morningMinutes + afternoonMinutes;
+              } else if (effectiveSchedule.startTime && effectiveSchedule.endTime) {
+                // Horario regular
+                const start = new Date(`1970-01-01T${effectiveSchedule.startTime}`);
+                const end = new Date(`1970-01-01T${effectiveSchedule.endTime}`);
+                let dayMinutes = (end - start) / (1000 * 60);
 
-          if (schedule && schedule.isWorkingDay && schedule.startTime && schedule.endTime) {
-            const start = new Date(`1970-01-01T${schedule.startTime}`);
-            const end = new Date(`1970-01-01T${schedule.endTime}`);
-            let dayMinutes = (end - start) / (1000 * 60);
+                // Restar tiempo de descanso si existe
+                if (effectiveSchedule.breakStartTime && effectiveSchedule.breakEndTime) {
+                  const breakStart = new Date(`1970-01-01T${effectiveSchedule.breakStartTime}`);
+                  const breakEnd = new Date(`1970-01-01T${effectiveSchedule.breakEndTime}`);
+                  dayMinutes -= (breakEnd - breakStart) / (1000 * 60);
+                }
 
-            if (schedule.breakStartTime && schedule.breakEndTime) {
-              const breakStart = new Date(`1970-01-01T${schedule.breakStartTime}`);
-              const breakEnd = new Date(`1970-01-01T${schedule.breakEndTime}`);
-              dayMinutes -= (breakEnd - breakStart) / (1000 * 60);
+                totalMinutes += dayMinutes;
+              }
             }
-
-            totalMinutes += dayMinutes;
+          } catch (error) {
+            console.error(`Error getting schedule for ${dateStr}:`, error);
+            // Continuar con el siguiente día si hay error
           }
 
           currentDate.setDate(currentDate.getDate() + 1);
