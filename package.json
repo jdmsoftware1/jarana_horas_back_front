@@ -1,5 +1,5 @@
 {
-  "name": "AliadaDigital-registro-horario",
+  "name": "aliadadigital-registro-horario",
   "version": "1.0.4",
   "description": "Sistema de registro horario unificado con Google OAuth - Multi-tenant",
   "main": "src/index.js",
@@ -14,6 +14,8 @@
     "check-env": "node scripts/check-env.js",
     "test-db": "node scripts/test-db-connection.js",
     "test-backend": "node test-backend-v1.0.4.js",
+    "test:api": "vitest run --config src/tests/vitest.config.js",
+    "test:api:watch": "vitest --config src/tests/vitest.config.js",
     "postinstall": "cd client && npm install",
     "render:build": "npm install && cd client && npm install && npm run build"
   },
@@ -44,7 +46,8 @@
   },
   "devDependencies": {
     "concurrently": "^8.2.2",
-    "nodemon": "^3.0.2"
+    "nodemon": "^3.0.2",
+    "vitest": "^1.6.1"
   },
   "keywords": [
     "time-tracking",
