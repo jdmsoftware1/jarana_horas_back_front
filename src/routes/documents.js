@@ -232,7 +232,21 @@ router.get('/admin-to-employee/my-documents', authMiddleware, async (req, res) =
       order: [['created_at', 'DESC']]
     });
 
-    res.json(documents);
+    // Verificar si los archivos existen físicamente
+    const documentsWithFileStatus = await Promise.all(
+      documents.map(async (doc) => {
+        const docJson = doc.toJSON();
+        try {
+          await fs.access(doc.filePath);
+          docJson.fileExists = true;
+        } catch {
+          docJson.fileExists = false;
+        }
+        return docJson;
+      })
+    );
+
+    res.json(documentsWithFileStatus);
   } catch (error) {
     console.error('Error fetching employee received documents:', error);
     res.status(500).json({ error: 'Error al obtener documentos' });
@@ -311,7 +325,21 @@ router.get('/all', authMiddleware, async (req, res) => {
       order: [['created_at', 'DESC']]
     });
 
-    res.json(documents);
+    // Verificar si los archivos existen físicamente
+    const documentsWithFileStatus = await Promise.all(
+      documents.map(async (doc) => {
+        const docJson = doc.toJSON();
+        try {
+          await fs.access(doc.filePath);
+          docJson.fileExists = true;
+        } catch {
+          docJson.fileExists = false;
+        }
+        return docJson;
+      })
+    );
+
+    res.json(documentsWithFileStatus);
   } catch (error) {
     console.error('Error fetching all documents:', error);
     res.status(500).json({ error: 'Error al obtener documentos' });

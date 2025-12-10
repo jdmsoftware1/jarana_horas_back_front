@@ -12,8 +12,8 @@
 **Descripción:** Sistema desplegado exitosamente en Render con backend, frontend y base de datos PostgreSQL.
 
 **Componentes Desplegados:**
-- Backend (Web Service): `https://AliadaDigital-horas-back.onrender.com`
-- Frontend (Static Site): `https://AliadaDigital-horas-back-front-1.onrender.com`
+- Backend (Web Service): `https://jarana-horas-back.onrender.com`
+- Frontend (Static Site): `https://jarana-horas-back-front-1.onrender.com`
 - PostgreSQL Database: `AliadaDigital-registro-db`
 
 **Configuración Implementada:**
@@ -76,22 +76,22 @@ publicDir: 'public',
 ```
 http://localhost:5173
 http://localhost:3000
-https://AliadaDigital-horas-back.onrender.com
-https://AliadaDigital-horas-back-front-1.onrender.com
+https://jarana-horas-back.onrender.com
+https://jarana-horas-back-front-1.onrender.com
 ```
 
 **Authorized redirect URIs:**
 ```
 http://localhost:3000/auth/google/callback
-https://AliadaDigital-horas-back.onrender.com/auth/google/callback
+https://jarana-horas-back.onrender.com/auth/google/callback
 ```
 
 **Variables de Entorno Configuradas:**
 ```bash
 # Backend
-GOOGLE_CALLBACK_URL=https://AliadaDigital-horas-back.onrender.com/auth/google/callback
-FRONTEND_URL=https://AliadaDigital-horas-back-front-1.onrender.com
-CLIENT_URL=https://AliadaDigital-horas-back-front-1.onrender.com
+GOOGLE_CALLBACK_URL=https://jarana-horas-back.onrender.com/auth/google/callback
+FRONTEND_URL=https://jarana-horas-back-front-1.onrender.com
+CLIENT_URL=https://jarana-horas-back-front-1.onrender.com
 ```
 
 **Correcciones Realizadas:**
@@ -120,7 +120,7 @@ CLIENT_URL=https://AliadaDigital-horas-back-front-1.onrender.com
 
 #### Backend (Web Service)
 ```yaml
-Name: AliadaDigital-horas-back
+Name: jarana-horas-back
 Runtime: Node
 Root Directory: (vacío)
 Build Command: npm install
@@ -148,7 +148,7 @@ Branch: master
 
 #### Frontend (Static Site)
 ```yaml
-Name: AliadaDigital-horas-back-front-1
+Name: jarana-horas-back-front-1
 Root Directory: client
 Build Command: npm install && npm run build
 Publish Directory: dist
@@ -156,7 +156,7 @@ Branch: master
 ```
 
 **Variables de Entorno (5):**
-- VITE_API_URL=https://AliadaDigital-horas-back.onrender.com
+- VITE_API_URL=https://jarana-horas-back.onrender.com
 - VITE_APP_NAME=AliadaDigital Registro Horario
 - VITE_ENVIRONMENT=production
 - VITE_ENABLE_AI_CHAT=true

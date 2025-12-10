@@ -1,7 +1,7 @@
 import express from 'express';
 import { Op } from 'sequelize';
 import sequelize from '../config/database.js';
-import { Record, Employee } from '../models/index.js';
+import { Record, Employee, Vacation, DailyScheduleException, WeeklySchedule, ScheduleTemplate, ScheduleTemplateDay } from '../models/index.js';
 import { authMiddleware, adminMiddleware } from '../middleware/authMiddleware.js';
 import { WeeklyScheduleService } from '../services/weeklyScheduleService.js';
 
@@ -634,6 +634,460 @@ router.get('/employee/:employeeId/hours-comparison', authMiddleware, async (req,
   } catch (error) {
     console.error('Error calculating hours comparison:', error);
     res.status(500).json({ error: 'Server error calculating hours comparison' });
+  }
+});
+
+// ============================================
+// EXPORTACIÓN CSV PARA AUDITORÍA
+// ============================================
+
+// Helper para escapar valores CSV
+const escapeCSV = (value) => {
+  if (value === null || value === undefined) return '';
+  const str = String(value);
+  if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+    return `"${str.replace(/"/g, '""')}"`;
+  }
+  return str;
+};
+
+// Helper para formatear fecha
+const formatDate = (date) => {
+  if (!date) return '';
+  const d = new Date(date);
+  return d.toISOString().split('T')[0];
+};
+
+// Helper para formatear hora
+const formatTime = (date) => {
+  if (!date) return '';
+  const d = new Date(date);
+  return d.toTimeString().split(' ')[0];
+};
+
+// Helper para calcular minutos entre tiempos
+const calcMinutes = (start, end) => {
+  if (!start || !end) return 0;
+  const s = new Date(`1970-01-01T${start}`);
+  const e = new Date(`1970-01-01T${end}`);
+  return (e - s) / (1000 * 60);
+};
+
+// GET /api/records/export/audit - Exportar datos para auditoría
+router.get('/export/audit', authMiddleware, adminMiddleware, async (req, res) => {
+  try {
+    const { startDate, endDate, employeeId, format = 'csv' } = req.query;
+    
+    // Validar fechas
+    const start = startDate ? new Date(startDate) : new Date(new Date().setMonth(new Date().getMonth() - 1));
+    const end = endDate ? new Date(endDate) : new Date();
+    end.setHours(23, 59, 59, 999);
+    
+    // Construir filtro de empleados
+    const employeeWhere = { isActive: true };
+    if (employeeId) {
+      employeeWhere.id = employeeId;
+    }
+    
+    // Obtener empleados
+    const employees = await Employee.findAll({
+      where: employeeWhere,
+      attributes: ['id', 'name', 'employeeCode', 'email'],
+      order: [['name', 'ASC']]
+    });
+    
+    // Preparar datos de auditoría
+    const auditData = [];
+    
+    for (const employee of employees) {
+      // Iterar por cada día del rango
+      const currentDate = new Date(start);
+      
+      while (currentDate <= end) {
+        const dateStr = currentDate.toISOString().split('T')[0];
+        const dayStart = new Date(dateStr);
+        const dayEnd = new Date(dateStr);
+        dayEnd.setHours(23, 59, 59, 999);
+        
+        // Obtener registros del día
+        const dayRecords = await Record.findAll({
+          where: {
+            employeeId: employee.id,
+            timestamp: { [Op.between]: [dayStart, dayEnd] }
+          },
+          order: [['timestamp', 'ASC']]
+        });
+        
+        // Calcular horas trabajadas
+        let workedMinutes = 0;
+        let firstCheckin = null;
+        let lastCheckout = null;
+        let lastCheckinTime = null;
+        
+        for (const record of dayRecords) {
+          if (record.type === 'checkin') {
+            lastCheckinTime = record.timestamp;
+            if (!firstCheckin) firstCheckin = record.timestamp;
+          } else if (record.type === 'checkout' && lastCheckinTime) {
+            workedMinutes += (new Date(record.timestamp) - new Date(lastCheckinTime)) / (1000 * 60);
+            lastCheckout = record.timestamp;
+            lastCheckinTime = null;
+          }
+        }
+        
+        // Obtener horario asignado
+        const effectiveSchedule = await WeeklyScheduleService.getEffectiveScheduleForDate(employee.id, dateStr);
+        let estimatedMinutes = 0;
+        let scheduleType = 'sin_horario';
+        let scheduleDetails = '';
+        
+        if (effectiveSchedule && effectiveSchedule.isWorkingDay) {
+          scheduleType = effectiveSchedule.type;
+          const templateDay = effectiveSchedule.data?.templateDay;
+          
+          if (templateDay && templateDay.isSplitSchedule && templateDay.morningStart) {
+            estimatedMinutes = calcMinutes(templateDay.morningStart, templateDay.morningEnd) + 
+                              calcMinutes(templateDay.afternoonStart, templateDay.afternoonEnd);
+            scheduleDetails = `${templateDay.morningStart}-${templateDay.morningEnd} + ${templateDay.afternoonStart}-${templateDay.afternoonEnd}`;
+          } else if (effectiveSchedule.startTime && effectiveSchedule.endTime) {
+            estimatedMinutes = calcMinutes(effectiveSchedule.startTime, effectiveSchedule.endTime);
+            if (effectiveSchedule.breakStartTime && effectiveSchedule.breakEndTime) {
+              estimatedMinutes -= calcMinutes(effectiveSchedule.breakStartTime, effectiveSchedule.breakEndTime);
+            }
+            scheduleDetails = `${effectiveSchedule.startTime}-${effectiveSchedule.endTime}`;
+          }
+        } else if (effectiveSchedule) {
+          scheduleType = effectiveSchedule.type === 'daily_exception' ? 'excepcion_libre' : 'dia_libre';
+        }
+        
+        // Verificar vacaciones
+        const vacation = await Vacation.findOne({
+          where: {
+            employeeId: employee.id,
+            startDate: { [Op.lte]: dateStr },
+            endDate: { [Op.gte]: dateStr },
+            status: 'approved'
+          }
+        });
+        
+        // Calcular diferencia y estado
+        const difference = workedMinutes - estimatedMinutes;
+        let status = 'normal';
+        
+        if (vacation) {
+          status = 'vacaciones';
+        } else if (estimatedMinutes > 0 && workedMinutes === 0 && dayRecords.length === 0) {
+          status = 'ausencia';
+        } else if (estimatedMinutes > 0 && firstCheckin) {
+          // Verificar llegada tarde (más de 10 minutos)
+          const scheduledStart = effectiveSchedule?.startTime || 
+                                effectiveSchedule?.data?.templateDay?.morningStart;
+          if (scheduledStart) {
+            const scheduled = new Date(`${dateStr}T${scheduledStart}`);
+            const actual = new Date(firstCheckin);
+            const lateMinutes = (actual - scheduled) / (1000 * 60);
+            if (lateMinutes > 10) {
+              status = 'llegada_tarde';
+            }
+          }
+        }
+        
+        if (difference < -30 && status === 'normal') {
+          status = 'horas_insuficientes';
+        } else if (difference > 60 && status === 'normal') {
+          status = 'horas_extra';
+        }
+        
+        auditData.push({
+          fecha: dateStr,
+          empleado: employee.name,
+          codigo: employee.employeeCode,
+          email: employee.email,
+          tipo_horario: scheduleType,
+          horario_asignado: scheduleDetails,
+          horas_estimadas: Math.floor(estimatedMinutes / 60) + ':' + String(Math.round(estimatedMinutes % 60)).padStart(2, '0'),
+          primera_entrada: firstCheckin ? formatTime(firstCheckin) : '',
+          ultima_salida: lastCheckout ? formatTime(lastCheckout) : '',
+          horas_trabajadas: Math.floor(workedMinutes / 60) + ':' + String(Math.round(workedMinutes % 60)).padStart(2, '0'),
+          diferencia_minutos: Math.round(difference),
+          estado: status,
+          num_fichajes: dayRecords.length,
+          vacaciones: vacation ? vacation.type : '',
+          notas: dayRecords.map(r => r.notes).filter(Boolean).join('; ')
+        });
+        
+        currentDate.setDate(currentDate.getDate() + 1);
+      }
+    }
+    
+    if (format === 'json') {
+      return res.json(auditData);
+    }
+    
+    // Generar CSV
+    const headers = [
+      'Fecha', 'Empleado', 'Código', 'Email', 'Tipo Horario', 'Horario Asignado',
+      'Horas Estimadas', 'Primera Entrada', 'Última Salida', 'Horas Trabajadas',
+      'Diferencia (min)', 'Estado', 'Num Fichajes', 'Vacaciones', 'Notas'
+    ];
+    
+    let csv = headers.join(',') + '\n';
+    
+    for (const row of auditData) {
+      csv += [
+        escapeCSV(row.fecha),
+        escapeCSV(row.empleado),
+        escapeCSV(row.codigo),
+        escapeCSV(row.email),
+        escapeCSV(row.tipo_horario),
+        escapeCSV(row.horario_asignado),
+        escapeCSV(row.horas_estimadas),
+        escapeCSV(row.primera_entrada),
+        escapeCSV(row.ultima_salida),
+        escapeCSV(row.horas_trabajadas),
+        escapeCSV(row.diferencia_minutos),
+        escapeCSV(row.estado),
+        escapeCSV(row.num_fichajes),
+        escapeCSV(row.vacaciones),
+        escapeCSV(row.notas)
+      ].join(',') + '\n';
+    }
+    
+    // Añadir BOM para Excel
+    const bom = '\uFEFF';
+    
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="auditoria_${formatDate(start)}_${formatDate(end)}.csv"`);
+    res.send(bom + csv);
+    
+  } catch (error) {
+    console.error('Error exporting audit data:', error);
+    res.status(500).json({ error: 'Error al exportar datos de auditoría' });
+  }
+});
+
+// GET /api/records/export/vacations - Exportar vacaciones
+router.get('/export/vacations', authMiddleware, adminMiddleware, async (req, res) => {
+  try {
+    const { year, status } = req.query;
+    
+    const where = {};
+    if (year) {
+      where.startDate = { [Op.gte]: `${year}-01-01` };
+      where.endDate = { [Op.lte]: `${year}-12-31` };
+    }
+    if (status) {
+      where.status = status;
+    }
+    
+    const vacations = await Vacation.findAll({
+      where,
+      include: [{
+        model: Employee,
+        as: 'employee',
+        attributes: ['name', 'employeeCode', 'email']
+      }],
+      order: [['startDate', 'DESC']]
+    });
+    
+    const headers = ['Empleado', 'Código', 'Email', 'Tipo', 'Fecha Inicio', 'Fecha Fin', 'Días', 'Estado', 'Motivo', 'Fecha Solicitud'];
+    let csv = headers.join(',') + '\n';
+    
+    for (const v of vacations) {
+      const days = Math.ceil((new Date(v.endDate) - new Date(v.startDate)) / (1000 * 60 * 60 * 24)) + 1;
+      csv += [
+        escapeCSV(v.employee?.name),
+        escapeCSV(v.employee?.employeeCode),
+        escapeCSV(v.employee?.email),
+        escapeCSV(v.type),
+        escapeCSV(formatDate(v.startDate)),
+        escapeCSV(formatDate(v.endDate)),
+        escapeCSV(days),
+        escapeCSV(v.status),
+        escapeCSV(v.reason),
+        escapeCSV(formatDate(v.createdAt))
+      ].join(',') + '\n';
+    }
+    
+    const bom = '\uFEFF';
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="vacaciones_${year || 'todas'}.csv"`);
+    res.send(bom + csv);
+    
+  } catch (error) {
+    console.error('Error exporting vacations:', error);
+    res.status(500).json({ error: 'Error al exportar vacaciones' });
+  }
+});
+
+// GET /api/records/export/summary - Resumen mensual por empleado
+router.get('/export/summary', authMiddleware, adminMiddleware, async (req, res) => {
+  try {
+    const { month, year } = req.query;
+    
+    const targetMonth = month ? parseInt(month) - 1 : new Date().getMonth();
+    const targetYear = year ? parseInt(year) : new Date().getFullYear();
+    
+    const startDate = new Date(targetYear, targetMonth, 1);
+    const endDate = new Date(targetYear, targetMonth + 1, 0, 23, 59, 59);
+    
+    const employees = await Employee.findAll({
+      where: { isActive: true },
+      attributes: ['id', 'name', 'employeeCode', 'email'],
+      order: [['name', 'ASC']]
+    });
+    
+    const summaryData = [];
+    
+    for (const employee of employees) {
+      // Obtener todos los registros del mes
+      const records = await Record.findAll({
+        where: {
+          employeeId: employee.id,
+          timestamp: { [Op.between]: [startDate, endDate] }
+        },
+        order: [['timestamp', 'ASC']]
+      });
+      
+      // Calcular totales
+      let totalWorkedMinutes = 0;
+      let totalEstimatedMinutes = 0;
+      let daysWorked = 0;
+      let lateArrivals = 0;
+      let absences = 0;
+      let lastCheckin = null;
+      
+      // Agrupar por día
+      const dayRecords = {};
+      for (const record of records) {
+        const day = formatDate(record.timestamp);
+        if (!dayRecords[day]) dayRecords[day] = [];
+        dayRecords[day].push(record);
+      }
+      
+      // Procesar cada día del mes
+      const currentDate = new Date(startDate);
+      while (currentDate <= endDate) {
+        const dateStr = formatDate(currentDate);
+        const dayRecs = dayRecords[dateStr] || [];
+        
+        // Calcular horas trabajadas del día
+        let dayWorked = 0;
+        let dayLastCheckin = null;
+        for (const r of dayRecs) {
+          if (r.type === 'checkin') dayLastCheckin = r.timestamp;
+          else if (r.type === 'checkout' && dayLastCheckin) {
+            dayWorked += (new Date(r.timestamp) - new Date(dayLastCheckin)) / (1000 * 60);
+            dayLastCheckin = null;
+          }
+        }
+        
+        if (dayWorked > 0) {
+          totalWorkedMinutes += dayWorked;
+          daysWorked++;
+        }
+        
+        // Obtener horario estimado
+        const schedule = await WeeklyScheduleService.getEffectiveScheduleForDate(employee.id, dateStr);
+        if (schedule && schedule.isWorkingDay) {
+          const td = schedule.data?.templateDay;
+          let dayEstimated = 0;
+          
+          if (td && td.isSplitSchedule && td.morningStart) {
+            dayEstimated = calcMinutes(td.morningStart, td.morningEnd) + calcMinutes(td.afternoonStart, td.afternoonEnd);
+          } else if (schedule.startTime && schedule.endTime) {
+            dayEstimated = calcMinutes(schedule.startTime, schedule.endTime);
+            if (schedule.breakStartTime && schedule.breakEndTime) {
+              dayEstimated -= calcMinutes(schedule.breakStartTime, schedule.breakEndTime);
+            }
+          }
+          
+          totalEstimatedMinutes += dayEstimated;
+          
+          // Verificar ausencia
+          if (dayEstimated > 0 && dayRecs.length === 0) {
+            // Verificar si no está de vacaciones
+            const vacation = await Vacation.findOne({
+              where: {
+                employeeId: employee.id,
+                startDate: { [Op.lte]: dateStr },
+                endDate: { [Op.gte]: dateStr },
+                status: 'approved'
+              }
+            });
+            if (!vacation) absences++;
+          }
+          
+          // Verificar llegada tarde
+          if (dayRecs.length > 0) {
+            const firstCheckin = dayRecs.find(r => r.type === 'checkin');
+            if (firstCheckin) {
+              const scheduledStart = schedule.startTime || td?.morningStart;
+              if (scheduledStart) {
+                const scheduled = new Date(`${dateStr}T${scheduledStart}`);
+                const actual = new Date(firstCheckin.timestamp);
+                if ((actual - scheduled) / (1000 * 60) > 10) {
+                  lateArrivals++;
+                }
+              }
+            }
+          }
+        }
+        
+        currentDate.setDate(currentDate.getDate() + 1);
+      }
+      
+      // Obtener vacaciones del mes
+      const vacationDays = await Vacation.count({
+        where: {
+          employeeId: employee.id,
+          status: 'approved',
+          startDate: { [Op.lte]: endDate },
+          endDate: { [Op.gte]: startDate }
+        }
+      });
+      
+      summaryData.push({
+        empleado: employee.name,
+        codigo: employee.employeeCode,
+        email: employee.email,
+        dias_trabajados: daysWorked,
+        horas_trabajadas: Math.floor(totalWorkedMinutes / 60) + ':' + String(Math.round(totalWorkedMinutes % 60)).padStart(2, '0'),
+        horas_estimadas: Math.floor(totalEstimatedMinutes / 60) + ':' + String(Math.round(totalEstimatedMinutes % 60)).padStart(2, '0'),
+        diferencia_horas: Math.floor((totalWorkedMinutes - totalEstimatedMinutes) / 60) + ':' + String(Math.abs(Math.round((totalWorkedMinutes - totalEstimatedMinutes) % 60))).padStart(2, '0'),
+        llegadas_tarde: lateArrivals,
+        ausencias: absences,
+        dias_vacaciones: vacationDays
+      });
+    }
+    
+    const headers = ['Empleado', 'Código', 'Email', 'Días Trabajados', 'Horas Trabajadas', 'Horas Estimadas', 'Diferencia', 'Llegadas Tarde', 'Ausencias', 'Días Vacaciones'];
+    let csv = headers.join(',') + '\n';
+    
+    for (const row of summaryData) {
+      csv += [
+        escapeCSV(row.empleado),
+        escapeCSV(row.codigo),
+        escapeCSV(row.email),
+        escapeCSV(row.dias_trabajados),
+        escapeCSV(row.horas_trabajadas),
+        escapeCSV(row.horas_estimadas),
+        escapeCSV(row.diferencia_horas),
+        escapeCSV(row.llegadas_tarde),
+        escapeCSV(row.ausencias),
+        escapeCSV(row.dias_vacaciones)
+      ].join(',') + '\n';
+    }
+    
+    const monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+    const bom = '\uFEFF';
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="resumen_${monthNames[targetMonth]}_${targetYear}.csv"`);
+    res.send(bom + csv);
+    
+  } catch (error) {
+    console.error('Error exporting summary:', error);
+    res.status(500).json({ error: 'Error al exportar resumen' });
   }
 });
 
