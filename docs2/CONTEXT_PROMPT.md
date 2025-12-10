@@ -12,8 +12,8 @@
 
 ## 🌐 URLS DE PRODUCCIÓN
 
-**Backend**: https://AliadaDigital-horas-back.onrender.com  
-**Frontend**: https://AliadaDigital-horas-back-front-1.onrender.com  
+**Backend**: https://jarana-horas-back.onrender.com  
+**Frontend**: https://jarana-horas-back-front-1.onrender.com  
 **Base de Datos**: PostgreSQL en Render (AliadaDigital-registro-db)
 
 **Desarrollo Local**:

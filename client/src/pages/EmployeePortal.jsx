@@ -2025,18 +2025,24 @@ const DocumentsContent = ({ employee, onDocumentRead }) => {
                   </div>
                 </div>
                 <div className="flex items-center space-x-2 ml-4">
-                  <button
-                    onClick={() => {
-                      handleDownload(doc.id, doc.originalName);
-                      if (!doc.readAt) {
-                        handleMarkAsRead(doc.id);
-                      }
-                    }}
-                    className="p-2 text-brand-light hover:bg-brand-light/10 rounded-lg transition-colors"
-                    title="Descargar"
-                  >
-                    <Download className="h-5 w-5" />
-                  </button>
+                  {doc.fileExists === false ? (
+                    <span className="text-xs text-red-500 bg-red-50 px-2 py-1 rounded">
+                      Archivo no disponible
+                    </span>
+                  ) : (
+                    <button
+                      onClick={() => {
+                        handleDownload(doc.id, doc.originalName);
+                        if (!doc.readAt) {
+                          handleMarkAsRead(doc.id);
+                        }
+                      }}
+                      className="p-2 text-brand-light hover:bg-brand-light/10 rounded-lg transition-colors"
+                      title="Descargar"
+                    >
+                      <Download className="h-5 w-5" />
+                    </button>
+                  )}
                 </div>
               </div>
             </div>

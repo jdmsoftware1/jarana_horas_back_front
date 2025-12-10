@@ -443,13 +443,105 @@ const EmployeesContent = () => {
             </label>
           </div>
         </div>
-        <button
-          onClick={() => setShowCreateForm(true)}
-          className="inline-flex items-center px-4 py-2 bg-brand-light text-brand-cream rounded-lg hover:bg-brand-medium transition-colors"
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Nuevo Empleado
-        </button>
+        <div className="flex items-center space-x-2">
+          {/* Botones de exportación CSV */}
+          <div className="relative group">
+            <button
+              className="inline-flex items-center px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm"
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Exportar CSV
+            </button>
+            <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
+              <div className="py-2">
+                <button
+                  onClick={async () => {
+                    try {
+                      const startDate = new Date(new Date().setMonth(new Date().getMonth() - 1)).toISOString().split('T')[0];
+                      const endDate = new Date().toISOString().split('T')[0];
+                      const response = await authenticatedFetch(`${getApiUrl()}/records/export/audit?startDate=${startDate}&endDate=${endDate}`);
+                      if (response.ok) {
+                        const blob = await response.blob();
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `auditoria_${startDate}_${endDate}.csv`;
+                        a.click();
+                        window.URL.revokeObjectURL(url);
+                      } else {
+                        alert('Error al exportar auditoría');
+                      }
+                    } catch (error) {
+                      console.error('Error:', error);
+                      alert('Error al exportar');
+                    }
+                  }}
+                  className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                >
+                  📋 Auditoría (último mes)
+                </button>
+                <button
+                  onClick={async () => {
+                    try {
+                      const month = new Date().getMonth() + 1;
+                      const year = new Date().getFullYear();
+                      const response = await authenticatedFetch(`${getApiUrl()}/records/export/summary?month=${month}&year=${year}`);
+                      if (response.ok) {
+                        const blob = await response.blob();
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `resumen_${month}_${year}.csv`;
+                        a.click();
+                        window.URL.revokeObjectURL(url);
+                      } else {
+                        alert('Error al exportar resumen');
+                      }
+                    } catch (error) {
+                      console.error('Error:', error);
+                      alert('Error al exportar');
+                    }
+                  }}
+                  className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                >
+                  📊 Resumen mensual
+                </button>
+                <button
+                  onClick={async () => {
+                    try {
+                      const year = new Date().getFullYear();
+                      const response = await authenticatedFetch(`${getApiUrl()}/records/export/vacations?year=${year}`);
+                      if (response.ok) {
+                        const blob = await response.blob();
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `vacaciones_${year}.csv`;
+                        a.click();
+                        window.URL.revokeObjectURL(url);
+                      } else {
+                        alert('Error al exportar vacaciones');
+                      }
+                    } catch (error) {
+                      console.error('Error:', error);
+                      alert('Error al exportar');
+                    }
+                  }}
+                  className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                >
+                  🏖️ Vacaciones del año
+                </button>
+              </div>
+            </div>
+          </div>
+          <button
+            onClick={() => setShowCreateForm(true)}
+            className="inline-flex items-center px-4 py-2 bg-brand-light text-brand-cream rounded-lg hover:bg-brand-medium transition-colors"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Nuevo Empleado
+          </button>
+        </div>
       </div>
 
       {/* Create Employee Modal */}

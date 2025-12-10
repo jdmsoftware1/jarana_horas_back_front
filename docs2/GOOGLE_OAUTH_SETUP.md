@@ -193,12 +193,12 @@ https://tu-backend.onrender.com/auth/google/callback
 Authorized JavaScript origins:
   http://localhost:5173
   http://localhost:3000
-  https://AliadaDigital-horas-back.onrender.com
-  https://AliadaDigital-horas-front.onrender.com
+  https://jarana-horas-back.onrender.com
+  https://jarana-horas-front.onrender.com
 
 Authorized redirect URIs:
   http://localhost:3000/auth/google/callback
-  https://AliadaDigital-horas-back.onrender.com/auth/google/callback
+  https://jarana-horas-back.onrender.com/auth/google/callback
 ```
 
 Click en **"Create"**
