@@ -140,12 +140,17 @@ router.post('/refresh', authMiddleware, (req, res) => {
 // ============================================
 
 // Iniciar autenticación con Google
-router.get('/google', 
+router.get('/google', (req, res, next) => {
+  // Guardar si viene de móvil en el state
+  const isMobile = req.query.mobile === 'true';
+  const state = isMobile ? 'mobile' : 'web';
+  
   passport.authenticate('google', { 
     scope: ['profile', 'email'],
-    session: false 
-  })
-);
+    session: false,
+    state: state
+  })(req, res, next);
+});
 
 // Callback de Google OAuth
 router.get('/google/callback',
@@ -157,11 +162,21 @@ router.get('/google/callback',
     try {
       // req.user viene de passport (configurado en config/passport.js)
       const { employee, accessToken, refreshToken } = req.user;
-
-      // Redirigir al frontend con los tokens
-      const redirectUrl = `${process.env.CLIENT_URL || 'http://localhost:5173'}/auth/callback?token=${accessToken}&refreshToken=${refreshToken}`;
       
-      res.redirect(redirectUrl);
+      // Verificar si viene de móvil (state=mobile)
+      const isMobile = req.query.state === 'mobile';
+      
+      if (isMobile) {
+        // Redirigir a la app móvil con deep link usando el scheme personalizado
+        // Siempre usar el scheme registrohorario:// que funciona tanto en dev como en prod
+        const mobileRedirectUrl = `registrohorario://auth/callback?token=${accessToken}`;
+        console.log('📱 Redirigiendo a app móvil:', mobileRedirectUrl);
+        res.redirect(mobileRedirectUrl);
+      } else {
+        // Redirigir al frontend web con los tokens
+        const redirectUrl = `${process.env.CLIENT_URL || 'http://localhost:5173'}/auth/callback?token=${accessToken}&refreshToken=${refreshToken}`;
+        res.redirect(redirectUrl);
+      }
     } catch (error) {
       console.error('❌ Error en callback de Google:', error);
       res.redirect(`${process.env.CLIENT_URL || 'http://localhost:5173'}/admin-login?error=callback_error`);
