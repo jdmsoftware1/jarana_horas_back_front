@@ -145,6 +145,16 @@ router.get('/google', (req, res, next) => {
   const isMobile = req.query.mobile === 'true';
   const state = isMobile ? 'mobile' : 'web';
   
+  console.log('🔐 Iniciando OAuth - mobile:', isMobile, 'state:', state);
+  
+  // Guardar en cookie como backup (el state de OAuth a veces no se preserva)
+  res.cookie('oauth_source', state, { 
+    maxAge: 5 * 60 * 1000, // 5 minutos
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax'
+  });
+  
   passport.authenticate('google', { 
     scope: ['profile', 'email'],
     session: false,
@@ -163,12 +173,18 @@ router.get('/google/callback',
       // req.user viene de passport (configurado en config/passport.js)
       const { employee, accessToken, refreshToken } = req.user;
       
-      // Verificar si viene de móvil (state=mobile)
-      const isMobile = req.query.state === 'mobile';
+      // Verificar si viene de móvil - primero del state, luego de la cookie
+      const stateFromQuery = req.query.state;
+      const stateFromCookie = req.cookies?.oauth_source;
+      const isMobile = stateFromQuery === 'mobile' || stateFromCookie === 'mobile';
+      
+      console.log('🔐 Callback OAuth - state query:', stateFromQuery, 'cookie:', stateFromCookie, 'isMobile:', isMobile);
+      
+      // Limpiar la cookie
+      res.clearCookie('oauth_source');
       
       if (isMobile) {
         // Redirigir a la app móvil con deep link usando el scheme personalizado
-        // Siempre usar el scheme registrohorario:// que funciona tanto en dev como en prod
         const mobileRedirectUrl = `registrohorario://auth/callback?token=${accessToken}`;
         console.log('📱 Redirigiendo a app móvil:', mobileRedirectUrl);
         res.redirect(mobileRedirectUrl);
