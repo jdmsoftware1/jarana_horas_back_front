@@ -184,10 +184,73 @@ router.get('/google/callback',
       res.clearCookie('oauth_source');
       
       if (isMobile) {
-        // Redirigir a la app móvil con deep link usando el scheme personalizado
-        const mobileRedirectUrl = `registrohorario://auth/callback?token=${accessToken}`;
-        console.log('📱 Redirigiendo a app móvil:', mobileRedirectUrl);
-        res.redirect(mobileRedirectUrl);
+        // Enviar página HTML que intenta abrir el deep link
+        // Esto es necesario porque los navegadores móviles no pueden redirigir directamente a custom schemes
+        const deepLink = `registrohorario://auth/callback?token=${accessToken}`;
+        console.log('📱 Enviando página de redirección móvil');
+        
+        res.send(`
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+            <title>Abriendo app...</title>
+            <style>
+              body { 
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                display: flex; 
+                flex-direction: column;
+                align-items: center; 
+                justify-content: center; 
+                height: 100vh; 
+                margin: 0;
+                background: linear-gradient(135deg, #8B7355 0%, #6B5744 50%, #4A3C2F 100%);
+                color: white;
+                text-align: center;
+                padding: 20px;
+              }
+              .spinner { 
+                width: 50px; 
+                height: 50px; 
+                border: 4px solid rgba(255,255,255,0.3); 
+                border-top-color: white; 
+                border-radius: 50%; 
+                animation: spin 1s linear infinite; 
+                margin-bottom: 20px;
+              }
+              @keyframes spin { to { transform: rotate(360deg); } }
+              h1 { font-size: 24px; margin-bottom: 10px; }
+              p { opacity: 0.9; margin-bottom: 20px; }
+              .btn {
+                background: white;
+                color: #4A3C2F;
+                padding: 15px 30px;
+                border-radius: 8px;
+                text-decoration: none;
+                font-weight: 600;
+                display: inline-block;
+                margin-top: 20px;
+              }
+            </style>
+          </head>
+          <body>
+            <div class="spinner"></div>
+            <h1>¡Autenticación exitosa!</h1>
+            <p>Abriendo la aplicación...</p>
+            <a href="${deepLink}" class="btn">Abrir App Manualmente</a>
+            <script>
+              // Intentar abrir el deep link automáticamente
+              window.location.href = "${deepLink}";
+              
+              // Si después de 2 segundos seguimos aquí, mostrar mensaje
+              setTimeout(function() {
+                document.querySelector('p').textContent = 'Si la app no se abre, pulsa el botón de abajo.';
+              }, 2000);
+            </script>
+          </body>
+          </html>
+        `);
       } else {
         // Redirigir al frontend web con los tokens
         const redirectUrl = `${process.env.CLIENT_URL || 'http://localhost:5173'}/auth/callback?token=${accessToken}&refreshToken=${refreshToken}`;
