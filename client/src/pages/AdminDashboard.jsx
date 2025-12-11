@@ -814,6 +814,8 @@ const RecordsContent = () => {
   const [filter, setFilter] = useState('all'); // all, today, week, month
   const [viewMode, setViewMode] = useState('grouped'); // grouped, list
   const [page, setPage] = useState(1);
+  const [exporting, setExporting] = useState(false);
+  const [showExportMenu, setShowExportMenu] = useState(false);
   const recordsPerPage = 10;
 
   // Cargar empleados
@@ -944,6 +946,151 @@ const RecordsContent = () => {
     return `${hours}h ${minutes}m`;
   };
 
+  // Función para exportar toda la BD a CSV
+  const handleExportAll = async () => {
+    setExporting(true);
+    setShowExportMenu(false);
+    
+    try {
+      const token = localStorage.getItem('token');
+      const baseUrl = getApiUrl();
+      
+      // Obtener todos los datos en paralelo
+      const [recordsRes, employeesRes, vacationsRes, schedulesRes, templatesRes] = await Promise.all([
+        authenticatedFetch(`${baseUrl}/records/all`),
+        authenticatedFetch(`${baseUrl}/employees`),
+        authenticatedFetch(`${baseUrl}/vacations`),
+        authenticatedFetch(`${baseUrl}/weekly-schedules`),
+        authenticatedFetch(`${baseUrl}/schedule-templates`)
+      ]);
+
+      const allRecords = recordsRes.ok ? await recordsRes.json() : { records: [] };
+      const allEmployees = employeesRes.ok ? await employeesRes.json() : [];
+      const allVacations = vacationsRes.ok ? await vacationsRes.json() : { vacations: [] };
+      const allSchedules = schedulesRes.ok ? await schedulesRes.json() : { schedules: [] };
+      const allTemplates = templatesRes.ok ? await templatesRes.json() : { templates: [] };
+
+      // Helper para escapar CSV
+      const escapeCSV = (val) => {
+        if (val === null || val === undefined) return '';
+        const str = String(val);
+        if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+          return `"${str.replace(/"/g, '""')}"`;
+        }
+        return str;
+      };
+
+      // Generar CSV de Registros
+      let csv = '=== REGISTROS DE FICHAJES ===\n';
+      csv += 'ID,Empleado,Código,Tipo,Fecha,Hora,Dispositivo,Notas\n';
+      const recordsData = allRecords.records || allRecords || [];
+      recordsData.forEach(r => {
+        const date = r.timestamp ? new Date(r.timestamp) : null;
+        csv += [
+          escapeCSV(r.id),
+          escapeCSV(r.employee?.name || r.Employee?.name || ''),
+          escapeCSV(r.employee?.employeeCode || r.Employee?.employeeCode || ''),
+          escapeCSV(r.type === 'checkin' ? 'Entrada' : 'Salida'),
+          escapeCSV(date ? date.toLocaleDateString('es-ES') : ''),
+          escapeCSV(date ? date.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }) : ''),
+          escapeCSV(r.device || ''),
+          escapeCSV(r.notes || '')
+        ].join(',') + '\n';
+      });
+
+      // Generar CSV de Empleados
+      csv += '\n=== EMPLEADOS ===\n';
+      csv += 'ID,Nombre,Código,Email,Rol,Activo,Fecha Creación\n';
+      const employeesData = Array.isArray(allEmployees) ? allEmployees : (allEmployees.employees || []);
+      employeesData.forEach(e => {
+        csv += [
+          escapeCSV(e.id),
+          escapeCSV(e.name),
+          escapeCSV(e.employeeCode),
+          escapeCSV(e.email || ''),
+          escapeCSV(e.role),
+          escapeCSV(e.isActive ? 'Sí' : 'No'),
+          escapeCSV(e.createdAt ? new Date(e.createdAt).toLocaleDateString('es-ES') : '')
+        ].join(',') + '\n';
+      });
+
+      // Generar CSV de Vacaciones
+      csv += '\n=== VACACIONES Y AUSENCIAS ===\n';
+      csv += 'ID,Empleado,Código,Fecha Inicio,Fecha Fin,Tipo,Estado,Motivo\n';
+      const vacationsData = Array.isArray(allVacations) ? allVacations : (allVacations.vacations || []);
+      vacationsData.forEach(v => {
+        csv += [
+          escapeCSV(v.id),
+          escapeCSV(v.employee?.name || v.Employee?.name || ''),
+          escapeCSV(v.employee?.employeeCode || v.Employee?.employeeCode || ''),
+          escapeCSV(v.startDate ? new Date(v.startDate).toLocaleDateString('es-ES') : ''),
+          escapeCSV(v.endDate ? new Date(v.endDate).toLocaleDateString('es-ES') : ''),
+          escapeCSV(v.type || 'vacaciones'),
+          escapeCSV(v.status || ''),
+          escapeCSV(v.reason || '')
+        ].join(',') + '\n';
+      });
+
+      // Generar CSV de Horarios Semanales
+      csv += '\n=== HORARIOS SEMANALES ASIGNADOS ===\n';
+      csv += 'ID,Empleado,Año,Semana,Plantilla,Fecha Inicio,Fecha Fin\n';
+      const schedulesData = Array.isArray(allSchedules) ? allSchedules : (allSchedules.schedules || []);
+      schedulesData.forEach(s => {
+        csv += [
+          escapeCSV(s.id),
+          escapeCSV(s.employee?.name || s.Employee?.name || ''),
+          escapeCSV(s.year),
+          escapeCSV(s.weekNumber),
+          escapeCSV(s.template?.name || s.ScheduleTemplate?.name || ''),
+          escapeCSV(s.startDate ? new Date(s.startDate).toLocaleDateString('es-ES') : ''),
+          escapeCSV(s.endDate ? new Date(s.endDate).toLocaleDateString('es-ES') : '')
+        ].join(',') + '\n';
+      });
+
+      // Generar CSV de Plantillas de Horario
+      csv += '\n=== PLANTILLAS DE HORARIO ===\n';
+      csv += 'ID,Nombre,Descripción,Horas Semanales,Activa\n';
+      const templatesData = Array.isArray(allTemplates) ? allTemplates : (allTemplates.templates || []);
+      templatesData.forEach(t => {
+        csv += [
+          escapeCSV(t.id),
+          escapeCSV(t.name),
+          escapeCSV(t.description || ''),
+          escapeCSV(t.weeklyHours || ''),
+          escapeCSV(t.isActive ? 'Sí' : 'No')
+        ].join(',') + '\n';
+      });
+
+      // Descargar el archivo
+      const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `jarana_export_completo_${new Date().toISOString().split('T')[0]}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+    } catch (error) {
+      console.error('Error al exportar:', error);
+      alert('Error al exportar los datos. Por favor, inténtalo de nuevo.');
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  // Cerrar menú al hacer clic fuera
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (showExportMenu && !event.target.closest('.export-menu-container')) {
+        setShowExportMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showExportMenu]);
+
   const groupedRecords = groupRecordsByDay(records);
   const sortedDates = Object.keys(groupedRecords).sort((a, b) => new Date(b) - new Date(a));
 
@@ -1014,13 +1161,28 @@ const RecordsContent = () => {
             <option value="month">Este mes</option>
           </select>
           
-          <button
-            onClick={fetchRecords}
-            className="px-4 py-2 bg-brand-light text-brand-cream rounded-lg hover:bg-brand-medium transition-colors"
-          >
-            <Download className="h-4 w-4 mr-2 inline" />
-            Actualizar
-          </button>
+          <div className="relative export-menu-container">
+            <button
+              onClick={() => setShowExportMenu(!showExportMenu)}
+              disabled={exporting}
+              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center disabled:opacity-50"
+            >
+              <Download className="h-4 w-4 mr-2" />
+              {exporting ? 'Exportando...' : 'Exportar'}
+            </button>
+            {showExportMenu && (
+              <div className="absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50">
+                <div className="py-1">
+                  <button
+                    onClick={handleExportAll}
+                    className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                  >
+                    📊 Exportar TODO (CSV)
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
