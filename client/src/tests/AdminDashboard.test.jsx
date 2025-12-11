@@ -337,4 +337,324 @@ describe('AdminDashboard', () => {
       expect(screen.queryByTestId('loading-spinner')).not.toBeInTheDocument();
     });
   });
+
+  // ============================================
+  // EXPORT FUNCTIONALITY TESTS
+  // ============================================
+
+  describe('Export Functionality', () => {
+    const mockTemplates = [
+      {
+        id: '1',
+        name: 'Jornada Completa',
+        description: 'Horario estándar 8h',
+        weeklyHours: 40,
+        isActive: true
+      }
+    ];
+
+    const mockSchedules = [
+      {
+        id: '1',
+        year: 2024,
+        weekNumber: 45,
+        employee: { name: 'Test Employee 1', employeeCode: 'TEST001' },
+        template: { name: 'Jornada Completa' },
+        startDate: '2024-11-04',
+        endDate: '2024-11-10'
+      }
+    ];
+
+    beforeEach(() => {
+      // Mock URL.createObjectURL and URL.revokeObjectURL
+      global.URL.createObjectURL = vi.fn(() => 'blob:mock-url');
+      global.URL.revokeObjectURL = vi.fn();
+      
+      // Mock document.createElement for download link
+      const mockLink = {
+        href: '',
+        setAttribute: vi.fn(),
+        click: vi.fn(),
+        remove: vi.fn()
+      };
+      vi.spyOn(document, 'createElement').mockImplementation((tag) => {
+        if (tag === 'a') return mockLink;
+        return document.createElement(tag);
+      });
+      vi.spyOn(document.body, 'appendChild').mockImplementation(() => {});
+      vi.spyOn(document.body, 'removeChild').mockImplementation(() => {});
+    });
+
+    afterEach(() => {
+      vi.restoreAllMocks();
+    });
+
+    test('renders export button in records section', async () => {
+      fetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockEmployees
+      }).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ records: mockRecords })
+      });
+
+      render(<MockedAdminDashboard />);
+      
+      const recordsTab = screen.getByText('Registros');
+      fireEvent.click(recordsTab);
+
+      await waitFor(() => {
+        expect(screen.getByText('Exportar')).toBeInTheDocument();
+      });
+    });
+
+    test('shows export menu when clicking export button', async () => {
+      fetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockEmployees
+      }).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ records: mockRecords })
+      });
+
+      render(<MockedAdminDashboard />);
+      
+      const recordsTab = screen.getByText('Registros');
+      fireEvent.click(recordsTab);
+
+      await waitFor(() => {
+        const exportButton = screen.getByText('Exportar');
+        fireEvent.click(exportButton);
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText('📊 Exportar TODO (CSV)')).toBeInTheDocument();
+      });
+    });
+
+    test('exports all data to CSV successfully', async () => {
+      // Mock initial data load
+      fetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockEmployees
+      }).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ records: mockRecords })
+      });
+
+      render(<MockedAdminDashboard />);
+      
+      const recordsTab = screen.getByText('Registros');
+      fireEvent.click(recordsTab);
+
+      await waitFor(() => {
+        expect(screen.getByText('Exportar')).toBeInTheDocument();
+      });
+
+      // Mock export API calls
+      fetch
+        .mockResolvedValueOnce({ ok: true, json: async () => ({ records: mockRecords }) })
+        .mockResolvedValueOnce({ ok: true, json: async () => mockEmployees })
+        .mockResolvedValueOnce({ ok: true, json: async () => ({ vacations: mockVacations }) })
+        .mockResolvedValueOnce({ ok: true, json: async () => ({ schedules: mockSchedules }) })
+        .mockResolvedValueOnce({ ok: true, json: async () => ({ templates: mockTemplates }) });
+
+      // Click export button
+      const exportButton = screen.getByText('Exportar');
+      fireEvent.click(exportButton);
+
+      await waitFor(() => {
+        const exportAllOption = screen.getByText('📊 Exportar TODO (CSV)');
+        fireEvent.click(exportAllOption);
+      });
+
+      await waitFor(() => {
+        // Verify that the export function was called
+        expect(global.URL.createObjectURL).toHaveBeenCalled();
+      });
+    });
+
+    test('handles export with empty data gracefully', async () => {
+      // Mock initial data load
+      fetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => []
+      }).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ records: [] })
+      });
+
+      render(<MockedAdminDashboard />);
+      
+      const recordsTab = screen.getByText('Registros');
+      fireEvent.click(recordsTab);
+
+      await waitFor(() => {
+        expect(screen.getByText('Exportar')).toBeInTheDocument();
+      });
+
+      // Mock export API calls with empty data
+      fetch
+        .mockResolvedValueOnce({ ok: true, json: async () => ({ records: [] }) })
+        .mockResolvedValueOnce({ ok: true, json: async () => [] })
+        .mockResolvedValueOnce({ ok: true, json: async () => ({ vacations: [] }) })
+        .mockResolvedValueOnce({ ok: true, json: async () => ({ schedules: [] }) })
+        .mockResolvedValueOnce({ ok: true, json: async () => ({ templates: [] }) });
+
+      // Click export button
+      const exportButton = screen.getByText('Exportar');
+      fireEvent.click(exportButton);
+
+      await waitFor(() => {
+        const exportAllOption = screen.getByText('📊 Exportar TODO (CSV)');
+        fireEvent.click(exportAllOption);
+      });
+
+      await waitFor(() => {
+        // Should still create a blob even with empty data
+        expect(global.URL.createObjectURL).toHaveBeenCalled();
+      });
+    });
+
+    test('handles export API errors gracefully', async () => {
+      // Mock initial data load
+      fetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockEmployees
+      }).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ records: mockRecords })
+      });
+
+      render(<MockedAdminDashboard />);
+      
+      const recordsTab = screen.getByText('Registros');
+      fireEvent.click(recordsTab);
+
+      await waitFor(() => {
+        expect(screen.getByText('Exportar')).toBeInTheDocument();
+      });
+
+      // Mock export API calls with errors
+      fetch
+        .mockResolvedValueOnce({ ok: false, status: 500 })
+        .mockResolvedValueOnce({ ok: false, status: 500 })
+        .mockResolvedValueOnce({ ok: false, status: 500 })
+        .mockResolvedValueOnce({ ok: false, status: 500 })
+        .mockResolvedValueOnce({ ok: false, status: 500 });
+
+      // Mock window.alert
+      const alertMock = vi.spyOn(window, 'alert').mockImplementation(() => {});
+
+      // Click export button
+      const exportButton = screen.getByText('Exportar');
+      fireEvent.click(exportButton);
+
+      await waitFor(() => {
+        const exportAllOption = screen.getByText('📊 Exportar TODO (CSV)');
+        fireEvent.click(exportAllOption);
+      });
+
+      // Should handle errors gracefully - still create CSV with empty sections
+      await waitFor(() => {
+        expect(global.URL.createObjectURL).toHaveBeenCalled();
+      });
+
+      alertMock.mockRestore();
+    });
+
+    test('shows loading state during export', async () => {
+      // Mock initial data load
+      fetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockEmployees
+      }).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ records: mockRecords })
+      });
+
+      render(<MockedAdminDashboard />);
+      
+      const recordsTab = screen.getByText('Registros');
+      fireEvent.click(recordsTab);
+
+      await waitFor(() => {
+        expect(screen.getByText('Exportar')).toBeInTheDocument();
+      });
+
+      // Mock slow API response
+      fetch.mockImplementation(() => new Promise(resolve => setTimeout(() => resolve({
+        ok: true,
+        json: async () => ({ records: [] })
+      }), 100)));
+
+      // Click export button
+      const exportButton = screen.getByText('Exportar');
+      fireEvent.click(exportButton);
+
+      await waitFor(() => {
+        const exportAllOption = screen.getByText('📊 Exportar TODO (CSV)');
+        fireEvent.click(exportAllOption);
+      });
+
+      // Should show loading state
+      await waitFor(() => {
+        expect(screen.getByText('Exportando...')).toBeInTheDocument();
+      });
+    });
+
+    test('CSV contains correct headers for all sections', async () => {
+      let capturedBlob = null;
+      global.Blob = vi.fn((content) => {
+        capturedBlob = content[0];
+        return { size: content[0].length };
+      });
+
+      // Mock initial data load
+      fetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockEmployees
+      }).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ records: mockRecords })
+      });
+
+      render(<MockedAdminDashboard />);
+      
+      const recordsTab = screen.getByText('Registros');
+      fireEvent.click(recordsTab);
+
+      await waitFor(() => {
+        expect(screen.getByText('Exportar')).toBeInTheDocument();
+      });
+
+      // Mock export API calls
+      fetch
+        .mockResolvedValueOnce({ ok: true, json: async () => ({ records: mockRecords }) })
+        .mockResolvedValueOnce({ ok: true, json: async () => mockEmployees })
+        .mockResolvedValueOnce({ ok: true, json: async () => ({ vacations: mockVacations }) })
+        .mockResolvedValueOnce({ ok: true, json: async () => ({ schedules: mockSchedules }) })
+        .mockResolvedValueOnce({ ok: true, json: async () => ({ templates: mockTemplates }) });
+
+      // Click export button
+      const exportButton = screen.getByText('Exportar');
+      fireEvent.click(exportButton);
+
+      await waitFor(() => {
+        const exportAllOption = screen.getByText('📊 Exportar TODO (CSV)');
+        fireEvent.click(exportAllOption);
+      });
+
+      await waitFor(() => {
+        expect(capturedBlob).not.toBeNull();
+      });
+
+      // Verify CSV sections
+      expect(capturedBlob).toContain('=== REGISTROS DE FICHAJES ===');
+      expect(capturedBlob).toContain('=== EMPLEADOS ===');
+      expect(capturedBlob).toContain('=== VACACIONES Y AUSENCIAS ===');
+      expect(capturedBlob).toContain('=== HORARIOS SEMANALES ASIGNADOS ===');
+      expect(capturedBlob).toContain('=== PLANTILLAS DE HORARIO ===');
+    });
+  });
 });
