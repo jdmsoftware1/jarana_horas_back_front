@@ -3,6 +3,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import session from 'express-session';
+import cookieParser from 'cookie-parser';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import sequelize, { testConnection } from './config/database.js';
@@ -36,6 +37,9 @@ const PORT = config.server.port;
 
 // Apply CORS FIRST (from centralized config)
 app.use(cors(config.cors));
+
+// Cookie parser (needed for OAuth mobile detection)
+app.use(cookieParser());
 
 // Session configuration (required for Passport)
 app.use(session(config.auth.session));
