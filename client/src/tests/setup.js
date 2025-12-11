@@ -50,11 +50,12 @@ vi.mock('../utils/api', () => ({
 // Mock react-router-dom for tests that don't need actual routing
 vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual('react-router-dom');
+  const React = await import('react');
   return {
     ...actual,
     useNavigate: () => vi.fn(),
     useLocation: () => ({ pathname: '/' }),
-    Link: ({ children, to, ...props }) => <a href={to} {...props}>{children}</a>
+    Link: ({ children, to, ...props }) => React.createElement('a', { href: to, ...props }, children)
   };
 });
 

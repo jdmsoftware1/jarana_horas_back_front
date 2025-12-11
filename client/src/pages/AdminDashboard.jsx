@@ -444,96 +444,45 @@ const EmployeesContent = () => {
           </div>
         </div>
         <div className="flex items-center space-x-2">
-          {/* Botones de exportación CSV */}
-          <div className="relative group">
-            <button
-              className="inline-flex items-center px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm"
-            >
-              <Download className="h-4 w-4 mr-2" />
-              Exportar CSV
-            </button>
-            <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
-              <div className="py-2">
-                <button
-                  onClick={async () => {
-                    try {
-                      const startDate = new Date(new Date().setMonth(new Date().getMonth() - 1)).toISOString().split('T')[0];
-                      const endDate = new Date().toISOString().split('T')[0];
-                      const response = await authenticatedFetch(`${getApiUrl()}/records/export/audit?startDate=${startDate}&endDate=${endDate}`);
-                      if (response.ok) {
-                        const blob = await response.blob();
-                        const url = window.URL.createObjectURL(blob);
-                        const a = document.createElement('a');
-                        a.href = url;
-                        a.download = `auditoria_${startDate}_${endDate}.csv`;
-                        a.click();
-                        window.URL.revokeObjectURL(url);
-                      } else {
-                        alert('Error al exportar auditoría');
-                      }
-                    } catch (error) {
-                      console.error('Error:', error);
-                      alert('Error al exportar');
-                    }
-                  }}
-                  className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                >
-                  📋 Auditoría (último mes)
-                </button>
-                <button
-                  onClick={async () => {
-                    try {
-                      const month = new Date().getMonth() + 1;
-                      const year = new Date().getFullYear();
-                      const response = await authenticatedFetch(`${getApiUrl()}/records/export/summary?month=${month}&year=${year}`);
-                      if (response.ok) {
-                        const blob = await response.blob();
-                        const url = window.URL.createObjectURL(blob);
-                        const a = document.createElement('a');
-                        a.href = url;
-                        a.download = `resumen_${month}_${year}.csv`;
-                        a.click();
-                        window.URL.revokeObjectURL(url);
-                      } else {
-                        alert('Error al exportar resumen');
-                      }
-                    } catch (error) {
-                      console.error('Error:', error);
-                      alert('Error al exportar');
-                    }
-                  }}
-                  className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                >
-                  📊 Resumen mensual
-                </button>
-                <button
-                  onClick={async () => {
-                    try {
-                      const year = new Date().getFullYear();
-                      const response = await authenticatedFetch(`${getApiUrl()}/records/export/vacations?year=${year}`);
-                      if (response.ok) {
-                        const blob = await response.blob();
-                        const url = window.URL.createObjectURL(blob);
-                        const a = document.createElement('a');
-                        a.href = url;
-                        a.download = `vacaciones_${year}.csv`;
-                        a.click();
-                        window.URL.revokeObjectURL(url);
-                      } else {
-                        alert('Error al exportar vacaciones');
-                      }
-                    } catch (error) {
-                      console.error('Error:', error);
-                      alert('Error al exportar');
-                    }
-                  }}
-                  className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                >
-                  🏖️ Vacaciones del año
-                </button>
-              </div>
-            </div>
-          </div>
+          <button
+            onClick={() => {
+              const escapeCSV = (val) => {
+                if (val === null || val === undefined) return '';
+                const str = String(val);
+                if (str.includes(',') || str.includes('"') || str.includes('\n') || str.includes(';')) {
+                  return `"${str.replace(/"/g, '""')}"`;
+                }
+                return str;
+              };
+              const SEP = ';';
+              let csv = 'LISTA DE EMPLEADOS\n';
+              csv += `Generado: ${new Date().toLocaleString('es-ES')}\n`;
+              csv += `Total: ${employees.length} empleados\n\n`;
+              csv += ['Nombre', 'Código', 'Email', 'Rol', 'Activo'].join(SEP) + '\n';
+              employees.forEach(e => {
+                csv += [
+                  escapeCSV(e.name),
+                  escapeCSV(e.employeeCode),
+                  escapeCSV(e.email || ''),
+                  escapeCSV(e.role === 'admin' ? 'Administrador' : 'Empleado'),
+                  escapeCSV(e.isActive ? 'Sí' : 'No')
+                ].join(SEP) + '\n';
+              });
+              const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+              const url = window.URL.createObjectURL(blob);
+              const link = document.createElement('a');
+              link.href = url;
+              link.setAttribute('download', `empleados_${new Date().toISOString().split('T')[0]}.csv`);
+              document.body.appendChild(link);
+              link.click();
+              document.body.removeChild(link);
+              window.URL.revokeObjectURL(url);
+            }}
+            className="inline-flex items-center px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm"
+          >
+            <Download className="h-4 w-4 mr-2" />
+            Exportar CSV
+          </button>
           <button
             onClick={() => setShowCreateForm(true)}
             className="inline-flex items-center px-4 py-2 bg-brand-light text-brand-cream rounded-lg hover:bg-brand-medium transition-colors"
@@ -815,7 +764,13 @@ const RecordsContent = () => {
   const [viewMode, setViewMode] = useState('grouped'); // grouped, list
   const [page, setPage] = useState(1);
   const [exporting, setExporting] = useState(false);
-  const [showExportMenu, setShowExportMenu] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [exportStartDate, setExportStartDate] = useState(() => {
+    const d = new Date();
+    d.setMonth(d.getMonth() - 1);
+    return d.toISOString().split('T')[0];
+  });
+  const [exportEndDate, setExportEndDate] = useState(() => new Date().toISOString().split('T')[0]);
   const recordsPerPage = 10;
 
   // Cargar empleados
@@ -946,127 +901,62 @@ const RecordsContent = () => {
     return `${hours}h ${minutes}m`;
   };
 
-  // Función para exportar toda la BD a CSV
-  const handleExportAll = async () => {
+  // Función para exportar solo registros con filtro de fecha
+  const handleExportRecords = async () => {
     setExporting(true);
-    setShowExportMenu(false);
+    setShowExportModal(false);
     
     try {
-      const token = localStorage.getItem('token');
       const baseUrl = getApiUrl();
+      const startDate = new Date(exportStartDate);
+      const endDate = new Date(exportEndDate);
+      endDate.setHours(23, 59, 59, 999);
       
-      // Obtener todos los datos en paralelo
-      const [recordsRes, employeesRes, vacationsRes, schedulesRes, templatesRes] = await Promise.all([
-        authenticatedFetch(`${baseUrl}/records/all`),
-        authenticatedFetch(`${baseUrl}/employees`),
-        authenticatedFetch(`${baseUrl}/vacations`),
-        authenticatedFetch(`${baseUrl}/weekly-schedules`),
-        authenticatedFetch(`${baseUrl}/schedule-templates`)
-      ]);
-
+      const recordsRes = await authenticatedFetch(`${baseUrl}/records/all`);
       const allRecords = recordsRes.ok ? await recordsRes.json() : { records: [] };
-      const allEmployees = employeesRes.ok ? await employeesRes.json() : [];
-      const allVacations = vacationsRes.ok ? await vacationsRes.json() : { vacations: [] };
-      const allSchedules = schedulesRes.ok ? await schedulesRes.json() : { schedules: [] };
-      const allTemplates = templatesRes.ok ? await templatesRes.json() : { templates: [] };
 
-      // Helper para escapar CSV
       const escapeCSV = (val) => {
         if (val === null || val === undefined) return '';
         const str = String(val);
-        if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+        if (str.includes(',') || str.includes('"') || str.includes('\n') || str.includes(';')) {
           return `"${str.replace(/"/g, '""')}"`;
         }
         return str;
       };
 
-      // Generar CSV de Registros
-      let csv = '=== REGISTROS DE FICHAJES ===\n';
-      csv += 'ID,Empleado,Código,Tipo,Fecha,Hora,Dispositivo,Notas\n';
-      const recordsData = allRecords.records || allRecords || [];
-      recordsData.forEach(r => {
+      const SEP = ';';
+      const recordsData = Array.isArray(allRecords) ? allRecords : (allRecords.records || []);
+
+      // Filtrar registros por fecha
+      const filteredRecords = recordsData.filter(r => {
+        if (!r.timestamp) return false;
+        const recordDate = new Date(r.timestamp);
+        return recordDate >= startDate && recordDate <= endDate;
+      }).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+      let csv = `REGISTROS DE FICHAJES\n`;
+      csv += `Período: ${new Date(exportStartDate).toLocaleDateString('es-ES')} - ${new Date(exportEndDate).toLocaleDateString('es-ES')}\n`;
+      csv += `Total registros: ${filteredRecords.length}\n\n`;
+      csv += ['Fecha', 'Hora', 'Empleado', 'Código', 'Tipo', 'Dispositivo', 'Notas'].join(SEP) + '\n';
+      
+      filteredRecords.forEach(r => {
         const date = r.timestamp ? new Date(r.timestamp) : null;
         csv += [
-          escapeCSV(r.id),
+          escapeCSV(date ? date.toLocaleDateString('es-ES') : ''),
+          escapeCSV(date ? date.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : ''),
           escapeCSV(r.employee?.name || r.Employee?.name || ''),
           escapeCSV(r.employee?.employeeCode || r.Employee?.employeeCode || ''),
           escapeCSV(r.type === 'checkin' ? 'Entrada' : 'Salida'),
-          escapeCSV(date ? date.toLocaleDateString('es-ES') : ''),
-          escapeCSV(date ? date.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }) : ''),
-          escapeCSV(r.device || ''),
+          escapeCSV(r.device || 'web'),
           escapeCSV(r.notes || '')
-        ].join(',') + '\n';
+        ].join(SEP) + '\n';
       });
 
-      // Generar CSV de Empleados
-      csv += '\n=== EMPLEADOS ===\n';
-      csv += 'ID,Nombre,Código,Email,Rol,Activo,Fecha Creación\n';
-      const employeesData = Array.isArray(allEmployees) ? allEmployees : (allEmployees.employees || []);
-      employeesData.forEach(e => {
-        csv += [
-          escapeCSV(e.id),
-          escapeCSV(e.name),
-          escapeCSV(e.employeeCode),
-          escapeCSV(e.email || ''),
-          escapeCSV(e.role),
-          escapeCSV(e.isActive ? 'Sí' : 'No'),
-          escapeCSV(e.createdAt ? new Date(e.createdAt).toLocaleDateString('es-ES') : '')
-        ].join(',') + '\n';
-      });
-
-      // Generar CSV de Vacaciones
-      csv += '\n=== VACACIONES Y AUSENCIAS ===\n';
-      csv += 'ID,Empleado,Código,Fecha Inicio,Fecha Fin,Tipo,Estado,Motivo\n';
-      const vacationsData = Array.isArray(allVacations) ? allVacations : (allVacations.vacations || []);
-      vacationsData.forEach(v => {
-        csv += [
-          escapeCSV(v.id),
-          escapeCSV(v.employee?.name || v.Employee?.name || ''),
-          escapeCSV(v.employee?.employeeCode || v.Employee?.employeeCode || ''),
-          escapeCSV(v.startDate ? new Date(v.startDate).toLocaleDateString('es-ES') : ''),
-          escapeCSV(v.endDate ? new Date(v.endDate).toLocaleDateString('es-ES') : ''),
-          escapeCSV(v.type || 'vacaciones'),
-          escapeCSV(v.status || ''),
-          escapeCSV(v.reason || '')
-        ].join(',') + '\n';
-      });
-
-      // Generar CSV de Horarios Semanales
-      csv += '\n=== HORARIOS SEMANALES ASIGNADOS ===\n';
-      csv += 'ID,Empleado,Año,Semana,Plantilla,Fecha Inicio,Fecha Fin\n';
-      const schedulesData = Array.isArray(allSchedules) ? allSchedules : (allSchedules.schedules || []);
-      schedulesData.forEach(s => {
-        csv += [
-          escapeCSV(s.id),
-          escapeCSV(s.employee?.name || s.Employee?.name || ''),
-          escapeCSV(s.year),
-          escapeCSV(s.weekNumber),
-          escapeCSV(s.template?.name || s.ScheduleTemplate?.name || ''),
-          escapeCSV(s.startDate ? new Date(s.startDate).toLocaleDateString('es-ES') : ''),
-          escapeCSV(s.endDate ? new Date(s.endDate).toLocaleDateString('es-ES') : '')
-        ].join(',') + '\n';
-      });
-
-      // Generar CSV de Plantillas de Horario
-      csv += '\n=== PLANTILLAS DE HORARIO ===\n';
-      csv += 'ID,Nombre,Descripción,Horas Semanales,Activa\n';
-      const templatesData = Array.isArray(allTemplates) ? allTemplates : (allTemplates.templates || []);
-      templatesData.forEach(t => {
-        csv += [
-          escapeCSV(t.id),
-          escapeCSV(t.name),
-          escapeCSV(t.description || ''),
-          escapeCSV(t.weeklyHours || ''),
-          escapeCSV(t.isActive ? 'Sí' : 'No')
-        ].join(',') + '\n';
-      });
-
-      // Descargar el archivo
       const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', `jarana_export_completo_${new Date().toISOString().split('T')[0]}.csv`);
+      link.setAttribute('download', `registros_${exportStartDate}_${exportEndDate}.csv`);
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -1079,17 +969,6 @@ const RecordsContent = () => {
       setExporting(false);
     }
   };
-
-  // Cerrar menú al hacer clic fuera
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (showExportMenu && !event.target.closest('.export-menu-container')) {
-        setShowExportMenu(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [showExportMenu]);
 
   const groupedRecords = groupRecordsByDay(records);
   const sortedDates = Object.keys(groupedRecords).sort((a, b) => new Date(b) - new Date(a));
@@ -1161,28 +1040,14 @@ const RecordsContent = () => {
             <option value="month">Este mes</option>
           </select>
           
-          <div className="relative export-menu-container">
-            <button
-              onClick={() => setShowExportMenu(!showExportMenu)}
+          <button
+              onClick={() => setShowExportModal(true)}
               disabled={exporting}
               className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center disabled:opacity-50"
             >
               <Download className="h-4 w-4 mr-2" />
-              {exporting ? 'Exportando...' : 'Exportar'}
+              {exporting ? 'Exportando...' : 'Exportar CSV'}
             </button>
-            {showExportMenu && (
-              <div className="absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50">
-                <div className="py-1">
-                  <button
-                    onClick={handleExportAll}
-                    className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                  >
-                    📊 Exportar TODO (CSV)
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
         </div>
       </div>
 
@@ -1402,6 +1267,66 @@ const RecordsContent = () => {
           </div>
         </div>
       )}
+
+      {/* Export Modal */}
+      {showExportModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md mx-4">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-xl font-bold text-neutral-dark">Exportar Registros</h3>
+              <button
+                onClick={() => setShowExportModal(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <XCircle className="h-6 w-6" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Fecha Inicio
+                </label>
+                <input
+                  type="date"
+                  value={exportStartDate}
+                  onChange={(e) => setExportStartDate(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-light focus:border-transparent"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Fecha Fin
+                </label>
+                <input
+                  type="date"
+                  value={exportEndDate}
+                  onChange={(e) => setExportEndDate(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-light focus:border-transparent"
+                />
+              </div>
+
+              <div className="flex space-x-3 pt-4">
+                <button
+                  onClick={() => setShowExportModal(false)}
+                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleExportRecords}
+                  disabled={exporting}
+                  className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 flex items-center justify-center"
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  {exporting ? 'Exportando...' : 'Exportar'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -1433,12 +1358,91 @@ const SchedulesContent = () => {
     fetchEmployees();
   }, []);
 
+  // Función para exportar horarios semanales
+  const handleExportSchedules = async () => {
+    try {
+      const [schedulesRes, templatesRes] = await Promise.all([
+        authenticatedFetch(`${getApiUrl()}/weekly-schedules`),
+        authenticatedFetch(`${getApiUrl()}/schedule-templates`)
+      ]);
+      
+      const allSchedules = schedulesRes.ok ? await schedulesRes.json() : { schedules: [] };
+      const allTemplates = templatesRes.ok ? await templatesRes.json() : { templates: [] };
+      
+      const escapeCSV = (val) => {
+        if (val === null || val === undefined) return '';
+        const str = String(val);
+        if (str.includes(',') || str.includes('"') || str.includes('\n') || str.includes(';')) {
+          return `"${str.replace(/"/g, '""')}"`;
+        }
+        return str;
+      };
+      
+      const SEP = ';';
+      const schedulesData = Array.isArray(allSchedules) ? allSchedules : (allSchedules.schedules || []);
+      const templatesData = Array.isArray(allTemplates) ? allTemplates : (allTemplates.templates || []);
+      
+      // Crear mapa de plantillas
+      const templatesMap = {};
+      templatesData.forEach(t => { templatesMap[t.id] = t.name; });
+      
+      let csv = 'HORARIOS SEMANALES POR EMPLEADO\n';
+      csv += `Generado: ${new Date().toLocaleString('es-ES')}\n\n`;
+      csv += ['Empleado', 'Código', 'Año', 'Semana', 'Plantilla'].join(SEP) + '\n';
+      
+      schedulesData.forEach(s => {
+        const empName = s.employee?.name || s.Employee?.name || '';
+        const empCode = s.employee?.employeeCode || s.Employee?.employeeCode || '';
+        const templateName = s.template?.name || s.ScheduleTemplate?.name || templatesMap[s.templateId] || s.templateId || '';
+        csv += [
+          escapeCSV(empName),
+          escapeCSV(empCode),
+          escapeCSV(s.year),
+          escapeCSV(s.weekNumber),
+          escapeCSV(templateName)
+        ].join(SEP) + '\n';
+      });
+      
+      // Añadir sección de plantillas
+      csv += '\n\nPLANTILLAS DE HORARIO\n';
+      csv += ['ID', 'Nombre', 'Descripción', 'Horas Semanales'].join(SEP) + '\n';
+      templatesData.forEach(t => {
+        csv += [
+          escapeCSV(t.id),
+          escapeCSV(t.name),
+          escapeCSV(t.description || ''),
+          escapeCSV(t.weeklyHours || '')
+        ].join(SEP) + '\n';
+      });
+      
+      const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `horarios_${new Date().toISOString().split('T')[0]}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error al exportar:', error);
+      alert('Error al exportar los horarios');
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold text-neutral-dark font-serif">
           Gestión de Horarios
         </h2>
+        <button
+          onClick={handleExportSchedules}
+          className="inline-flex items-center px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm"
+        >
+          <Download className="h-4 w-4 mr-2" />
+          Exportar CSV
+        </button>
       </div>
 
       {/* Employees List for Schedule Management */}
@@ -1582,19 +1586,75 @@ const VacationsContent = () => {
     }
   };
 
+  // Función para exportar vacaciones
+  const handleExportVacations = () => {
+    const escapeCSV = (val) => {
+      if (val === null || val === undefined) return '';
+      const str = String(val);
+      if (str.includes(',') || str.includes('"') || str.includes('\n') || str.includes(';')) {
+        return `"${str.replace(/"/g, '""')}"`;
+      }
+      return str;
+    };
+    
+    const SEP = ';';
+    let csv = 'VACACIONES Y AUSENCIAS\n';
+    csv += `Generado: ${new Date().toLocaleString('es-ES')}\n`;
+    csv += `Total: ${vacations.length} solicitudes\n\n`;
+    csv += ['Empleado', 'Código', 'Tipo', 'Fecha Inicio', 'Fecha Fin', 'Días', 'Estado', 'Motivo'].join(SEP) + '\n';
+    
+    vacations.forEach(v => {
+      let days = '';
+      if (v.startDate && v.endDate) {
+        const start = new Date(v.startDate);
+        const end = new Date(v.endDate);
+        days = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
+      }
+      csv += [
+        escapeCSV(v.employee?.name || v.Employee?.name || ''),
+        escapeCSV(v.employee?.employeeCode || v.Employee?.employeeCode || ''),
+        escapeCSV(getTypeLabel(v.type)),
+        escapeCSV(v.startDate ? new Date(v.startDate).toLocaleDateString('es-ES') : ''),
+        escapeCSV(v.endDate ? new Date(v.endDate).toLocaleDateString('es-ES') : ''),
+        escapeCSV(days),
+        escapeCSV(getStatusLabel(v.status)),
+        escapeCSV(v.reason || '')
+      ].join(SEP) + '\n';
+    });
+    
+    const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `vacaciones_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold text-neutral-dark font-serif">
           Gestión de Vacaciones
         </h2>
-        <button
-          onClick={() => setShowCreateModal(true)}
-          className="inline-flex items-center px-4 py-2 bg-brand-light text-brand-cream rounded-lg hover:bg-brand-medium transition-colors"
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Nueva Solicitud
-        </button>
+        <div className="flex items-center space-x-2">
+          <button
+            onClick={handleExportVacations}
+            className="inline-flex items-center px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm"
+          >
+            <Download className="h-4 w-4 mr-2" />
+            Exportar CSV
+          </button>
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="inline-flex items-center px-4 py-2 bg-brand-light text-brand-cream rounded-lg hover:bg-brand-medium transition-colors"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Nueva Solicitud
+          </button>
+        </div>
       </div>
 
       {/* Vacations Table */}
