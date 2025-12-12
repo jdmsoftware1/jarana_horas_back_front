@@ -141,19 +141,18 @@ router.post('/refresh', authMiddleware, (req, res) => {
 
 // Iniciar autenticación con Google
 router.get('/google', (req, res, next) => {
-  // Guardar si viene de móvil en el state
+  // Guardar si viene de móvil en el state (codificado en Base64 para preservarlo)
   const isMobile = req.query.mobile === 'true';
-  const state = isMobile ? 'mobile' : 'web';
+  const mobileRedirectUri = req.query.redirect_uri || null;
   
-  console.log('🔐 Iniciando OAuth - mobile:', isMobile, 'state:', state);
-  
-  // Guardar en cookie como backup (el state de OAuth a veces no se preserva)
-  res.cookie('oauth_source', state, { 
-    maxAge: 5 * 60 * 1000, // 5 minutos
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax'
+  const stateData = JSON.stringify({ 
+    source: isMobile ? 'mobile' : 'web', 
+    redirectUri: mobileRedirectUri,
+    timestamp: Date.now() 
   });
+  const state = Buffer.from(stateData).toString('base64');
+  
+  console.log('🔐 Iniciando OAuth - mobile:', isMobile, 'redirectUri:', mobileRedirectUri);
   
   passport.authenticate('google', { 
     scope: ['profile', 'email'],
@@ -173,21 +172,33 @@ router.get('/google/callback',
       // req.user viene de passport (configurado en config/passport.js)
       const { employee, accessToken, refreshToken } = req.user;
       
-      // Verificar si viene de móvil - primero del state, luego de la cookie
+      // Decodificar el state de OAuth para saber si viene de móvil
+      let isMobile = false;
+      let mobileRedirectUri = null;
       const stateFromQuery = req.query.state;
-      const stateFromCookie = req.cookies?.oauth_source;
-      const isMobile = stateFromQuery === 'mobile' || stateFromCookie === 'mobile';
       
-      console.log('🔐 Callback OAuth - state query:', stateFromQuery, 'cookie:', stateFromCookie, 'isMobile:', isMobile);
+      if (stateFromQuery) {
+        try {
+          const stateData = JSON.parse(Buffer.from(stateFromQuery, 'base64').toString('utf8'));
+          isMobile = stateData.source === 'mobile';
+          mobileRedirectUri = stateData.redirectUri;
+          console.log('🔐 Callback OAuth - decoded state:', stateData, 'isMobile:', isMobile);
+        } catch (e) {
+          // Fallback: si el state es simplemente 'mobile' o 'web'
+          isMobile = stateFromQuery === 'mobile';
+          console.log('🔐 Callback OAuth - raw state:', stateFromQuery, 'isMobile:', isMobile);
+        }
+      }
       
-      // Limpiar la cookie
-      res.clearCookie('oauth_source');
-      
-      if (isMobile) {
-        // Enviar página HTML que intenta abrir el deep link
-        // Esto es necesario porque los navegadores móviles no pueden redirigir directamente a custom schemes
-        const deepLink = `registrohorario://auth/callback?token=${accessToken}`;
-        console.log('📱 Enviando página de redirección móvil');
+      if (isMobile && mobileRedirectUri) {
+        // Redirigir directamente a la URL de Expo que envió la app
+        const redirectWithToken = `${mobileRedirectUri}?token=${accessToken}`;
+        console.log('📱 Redirigiendo a app móvil:', redirectWithToken);
+        res.redirect(redirectWithToken);
+      } else if (isMobile) {
+        // Fallback: página HTML con deep links
+        const customSchemeLink = `registrohorario://auth/callback?token=${accessToken}`;
+        console.log('📱 Enviando página de redirección móvil (fallback)');
         
         res.send(`
           <!DOCTYPE html>
@@ -238,10 +249,10 @@ router.get('/google/callback',
             <div class="spinner"></div>
             <h1>¡Autenticación exitosa!</h1>
             <p>Abriendo la aplicación...</p>
-            <a href="${deepLink}" class="btn">Abrir App Manualmente</a>
+            <a href="${customSchemeLink}" class="btn">Abrir App</a>
             <script>
-              // Intentar abrir el deep link automáticamente
-              window.location.href = "${deepLink}";
+              // Intentar abrir con el scheme personalizado
+              window.location.href = "${customSchemeLink}";
               
               // Si después de 2 segundos seguimos aquí, mostrar mensaje
               setTimeout(function() {
