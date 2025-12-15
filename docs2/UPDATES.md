@@ -4,6 +4,119 @@
 
 ---
 
+## Versión 1.2.0 - 15 de Diciembre 2024
+
+### 🏢 SISTEMA MULTI-TENANT
+
+#### 1. Base de Datos Neon para Multi-Tenant
+**Descripción:** Sistema de redirección de empresas usando PostgreSQL en Neon para soportar múltiples clientes con una sola app.
+
+**Tabla `tenants` en Neon:**
+```sql
+CREATE TABLE tenants (
+  email VARCHAR(255) PRIMARY KEY,
+  role VARCHAR(50) DEFAULT 'employee',
+  enterprise_name VARCHAR(100) NOT NULL,
+  api_url VARCHAR(255) NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+**Archivos Nuevos:**
+- `src/config/neonDb.js` - Pool de conexión a Neon con SSL
+- `src/routes/tenant.js` - Endpoints para gestión de tenants
+
+**Endpoints Implementados:**
+```
+GET  /api/tenant?email=xxx    # Obtener config por email
+POST /api/tenant              # Crear/actualizar tenant
+GET  /api/tenant/all          # Listar todos los tenants
+```
+
+**Variables de Entorno Nuevas:**
+```bash
+NEON_TENANT_URL=postgresql://user:pass@host.neon.tech/neondb?sslmode=require
+```
+
+---
+
+#### 2. Flujo Multi-Tenant
+```
+App Móvil → Login con email
+         ↓
+GET /api/tenant?email=xxx
+         ↓
+Backend consulta Neon DB
+         ↓
+Devuelve: { enterpriseName, apiUrl, theme, role }
+         ↓
+App configura tema y API URL dinámicamente
+```
+
+---
+
+### 📱 APP MÓVIL REACT NATIVE
+
+#### Repositorio Separado
+**Ubicación:** `jarana_app_react_native/`
+
+**Características Implementadas:**
+- ✅ Google OAuth con deep linking (`registrohorario://`)
+- ✅ Temas dinámicos por empresa (AliadaDigital theme)
+- ✅ Navegación por roles (Admin vs Employee)
+- ✅ 4 tabs empleado: Calendario, Fichar, Ausencia, Horario
+- ✅ 6 tabs admin: Dashboard, Empleados, Registros, Horarios, Ausencias, Ajustes
+- ✅ Servicio de tenant para redirección multi-empresa
+
+**Archivos Clave App Móvil:**
+- `src/services/tenantService.js` - Servicio multi-tenant
+- `src/context/ThemeContext.js` - Temas dinámicos
+- `src/theme/themes.js` - Definición de temas
+- `src/theme/colors.js` - Colores AliadaDigital
+
+---
+
+### 🎨 TEMA ALIADADIGITAL
+
+**Paleta de Colores (Turquesa/Navy):**
+```javascript
+colors: {
+  brandLight: '#4ECDC4',    // Turquesa/Teal
+  brandMedium: '#2C5364',   // Azul medio
+  brandDark: '#1B3A4B',     // Azul navy principal
+  brandDeep: '#0F2A3D',     // Azul navy oscuro
+  brandAccent: '#6FE4DB',   // Turquesa claro
+  brandCream: '#F9F7F4',    // Fondo crema
+}
+```
+
+---
+
+### 📊 ESTADÍSTICAS DE LA VERSIÓN
+
+**Archivos Nuevos Backend:** 2
+- `src/config/neonDb.js`
+- `src/routes/tenant.js`
+
+**Archivos Modificados Backend:** 2
+- `src/index.js` (añadido tenant routes)
+- `.env.example` (añadido NEON_TENANT_URL)
+
+**Documentación Actualizada:** 2
+- `docs2/CONTEXT_PROMPT.md`
+- `docs2/UPDATES.md`
+
+---
+
+### 🔧 CONFIGURACIÓN RENDER (Producción)
+
+**Nueva Variable de Entorno:**
+```
+NEON_TENANT_URL=postgresql://neondb_owner:xxx@ep-xxx.neon.tech/neondb?sslmode=require
+```
+
+---
+
 ## Versión 1.1.0 - 06-07 de Noviembre 2024
 
 ### 🚀 DEPLOYMENT EN RENDER
