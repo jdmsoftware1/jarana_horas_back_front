@@ -5,8 +5,8 @@
 **Nombre**: Sistema de Registro Horario AliadaDigital  
 **Tipo**: Aplicación web full-stack para gestión de recursos humanos  
 **Estado**: Producción - Desplegado en Render  
-**Versión**: 1.1.0  
-**Última Actualización**: 02/12/2024
+**Versión**: 1.2.0  
+**Última Actualización**: 15/12/2024
 
 ---
 
@@ -14,7 +14,8 @@
 
 **Backend**: https://jarana-horas-back.onrender.com  
 **Frontend**: https://jarana-horas-back-front-1.onrender.com  
-**Base de Datos**: PostgreSQL en Render (AliadaDigital-registro-db)
+**Base de Datos**: PostgreSQL en Render (AliadaDigital-registro-db)  
+**Base de Datos Multi-tenant**: PostgreSQL en Neon (neondb)
 
 **Desarrollo Local**:
 - Backend: http://localhost:3000
@@ -76,6 +77,7 @@ registro_horario/
 │   │   ├── kiosk.js              # Kiosk de fichaje
 │   │   ├── schedules.js          # Horarios
 │   │   ├── vacations.js          # Vacaciones
+│   │   ├── tenant.js             # Multi-tenant (redirección empresas)
 │   │   └── ai.js                 # IA y chat
 │   ├── services/                 # Servicios
 │   │   ├── embeddingService.js   # Embeddings OpenAI
@@ -85,6 +87,7 @@ registro_horario/
 │   │   └── errorHandler.js       # Manejo de errores
 │   ├── config/                   # Configuración
 │   │   ├── database.js           # Conexión PostgreSQL
+│   │   ├── neonDb.js             # Conexión Neon (Multi-tenant)
 │   │   ├── env.js                # Variables de entorno
 │   │   └── passport.js           # Estrategias OAuth
 │   └── index.js                  # Entry point
@@ -467,6 +470,27 @@ POST   /api/documents                # Subir documento
 DELETE /api/documents/:id            # Eliminar documento
 ```
 
+### **Multi-Tenant** (`/api/tenant`)
+```
+GET    /api/tenant?email=xxx         # Obtener config de tenant por email
+POST   /api/tenant                   # Crear/actualizar tenant
+GET    /api/tenant/all               # Listar todos los tenants
+```
+
+**Respuesta GET /api/tenant:**
+```json
+{
+  "found": true,
+  "config": {
+    "email": "user@empresa.com",
+    "role": "admin",
+    "enterpriseName": "AliadaDigital",
+    "apiUrl": "https://jarana-horas-back.onrender.com/api",
+    "theme": "aliadaDigital"
+  }
+}
+```
+
 ---
 
 ## 🔐 VARIABLES DE ENTORNO
@@ -479,6 +503,9 @@ PORT=3000
 
 # Base de Datos
 DATABASE_URL=postgresql://user:pass@host:5432/db
+
+# Base de Datos Neon (Multi-tenant)
+NEON_TENANT_URL=postgresql://user:pass@host.neon.tech/neondb?sslmode=require
 
 # Seguridad (generar con crypto.randomBytes(32).toString('hex'))
 JWT_SECRET=<32+ caracteres>
@@ -748,14 +775,16 @@ npm test                 # Tests
 
 ## 🎉 ESTADO ACTUAL
 
-**Versión**: 1.1.0  
+**Versión**: 1.2.0  
 **Estado**: ✅ Producción  
 **Deployment**: ✅ Render  
 **Autenticación**: ✅ Google OAuth + TOTP  
 **IA**: ✅ RAG con Embeddings  
+**Multi-Tenant**: ✅ Neon DB  
+**App Móvil**: ✅ React Native (Expo)  
 **Documentación**: ✅ Completa  
 
-**Última Actualización**: 02/12/2024
+**Última Actualización**: 15/12/2024
 
 ---
 
