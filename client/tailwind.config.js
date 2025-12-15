@@ -8,46 +8,46 @@ export default {
     extend: {
       colors: {
         brand: {
-          dark: '#0F2A3D',    // Azul navy muy oscuro (sombras)
-          deep: '#1B3A4B',    // Azul navy principal (logo A)
-          medium: '#2C5364',  // Azul medio
-          light: '#4ECDC4',   // Turquesa/Teal (logo D)
-          accent: '#6FE4DB',  // Turquesa claro
-          cream: '#F9F7F4',   // Fondo crema claro
+          dark: '#4A2900',      // Marrón chocolate oscuro (fondo principal)
+          deep: '#2E1800',      // Marrón muy oscuro (sombras / contornos)
+          medium: '#7A4E1E',    // Marrón medio
+          light: '#C47A3F',     // Naranja terracota (acento principal - "JARANA")
+          accent: '#D6B48D',    // Beige cálido / complementario
+          cream: '#F8ECDC',     // Crema claro (texto / logo)
         },
         neutral: {
-          light: '#F9F7F4',   // Fondo de paneles / inputs
-          mid: '#B8C5CC',     // Placeholder / bordes suaves
-          dark: '#1B3A4B',    // Texto sobre fondos claros
+          light: '#FAF6F3',     // Fondo de paneles / inputs
+          mid: '#BFB0A3',       // Placeholder / bordes suaves
+          dark: '#3B2C1E',      // Texto sobre fondos claros
         },
         accent: {
-          teal: '#4ECDC4',    // Turquesa principal
-          navy: '#1B3A4B',    // Azul navy
+          terracotta: '#C47A3F', // Naranja terracota principal
+          olive: '#4D5B36',      // Verde oliva oscuro
         },
         // Paleta extendida para más flexibilidad
-        navy: {
-          50: '#E8EEF2',
-          100: '#D1DEE5',
-          200: '#A3BDCB',
-          300: '#759CB1',
-          400: '#477B97',
-          500: '#2C5364',
-          600: '#1B3A4B',
-          700: '#0F2A3D',
-          800: '#0A1F2E',
-          900: '#05141F',
+        brown: {
+          50: '#FAF6F3',
+          100: '#F5EDE6',
+          200: '#E8D9CC',
+          300: '#D6B48D',
+          400: '#C47A3F',
+          500: '#9A5C2E',
+          600: '#7A4E1E',
+          700: '#5C3A16',
+          800: '#4A2900',
+          900: '#2E1800',
         },
-        teal: {
-          50: '#E6FAF8',
-          100: '#CCF5F1',
-          200: '#99EBE3',
-          300: '#6FE4DB',
-          400: '#4ECDC4',
-          500: '#3DBDB4',
-          600: '#2E9A93',
-          700: '#237772',
-          800: '#185451',
-          900: '#0D3130',
+        terracotta: {
+          50: '#FDF6F0',
+          100: '#FBEEE1',
+          200: '#F5D5B8',
+          300: '#E8B88A',
+          400: '#D6945C',
+          500: '#C47A3F',
+          600: '#A65E2A',
+          700: '#874A20',
+          800: '#683816',
+          900: '#4A280E',
         },
       },
       fontFamily: {
