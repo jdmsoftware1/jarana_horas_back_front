@@ -476,7 +476,7 @@ ${todayRecords.length > 0 ? todayRecords.map(r => `- ${new Date(r.timestamp).toL
         messages: [
           {
             role: "system",
-            content: `Eres AliadaDigital AI, un asistente inteligente especializado en gestión de recursos humanos y control horario.
+            content: `Ees JaranAI, un asistente inteligente especializado en gestión de recursos humanos y control horario.
 
 CAPACIDADES PRINCIPALES:
 - Análisis detallado de fichajes y patrones de trabajo
