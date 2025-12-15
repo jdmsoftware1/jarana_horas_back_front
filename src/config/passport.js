@@ -5,6 +5,7 @@
 import passport from 'passport';
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
 import jwt from 'jsonwebtoken';
+import { Op } from 'sequelize';
 import { authConfig } from './env.js';
 import { Employee } from '../models/Employee.js';
 import AccessLog from '../models/AccessLog.js';
@@ -69,7 +70,7 @@ passport.use(
         // Buscar empleado por email o googleId
         let employee = await Employee.findOne({
           where: {
-            [Employee.sequelize.Sequelize.Op.or]: [
+            [Op.or]: [
               { email },
               { googleId }
             ]
