@@ -385,11 +385,10 @@ router.get('/next-employee-code', async (req, res) => {
     
     let prefix = role === 'admin' ? 'ADM' : 'EMP';
     
-    // Buscar el último código para el rol especificado
+    // Buscar el último código con ese prefijo (sin filtrar por role)
     const lastEmployee = await Employee.findOne({
       where: { 
-        role: role,
-        employeeCode: { [sequelize.Op.like]: `${prefix}%` }
+        employeeCode: { [Op.like]: `${prefix}%` }
       },
       order: [['employeeCode', 'DESC']]
     });
