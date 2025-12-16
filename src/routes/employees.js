@@ -57,10 +57,9 @@ router.post('/', authMiddleware, adminMiddleware, async (req, res) => {
     }
 
     // Generate unique employee code
-    // Buscar el último código EMP para generar el siguiente
+    // Buscar el último código EMP para generar el siguiente (sin filtrar por role)
     const lastEmployee = await Employee.findOne({
       where: { 
-        role: 'employee',
         employeeCode: { [Op.like]: 'EMP%' }
       },
       order: [['employeeCode', 'DESC']]
