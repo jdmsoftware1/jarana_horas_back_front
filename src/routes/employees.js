@@ -106,9 +106,17 @@ router.post('/', authMiddleware, adminMiddleware, async (req, res) => {
   } catch (error) {
     console.error('Create employee error:', error);
     if (error.name === 'SequelizeUniqueConstraintError') {
-      return res.status(409).json({ error: 'Email already exists' });
+      // Identificar qué campo causó el error
+      const field = error.errors?.[0]?.path || 'unknown';
+      const value = error.errors?.[0]?.value || '';
+      console.error(`Unique constraint error on field: ${field}, value: ${value}`);
+      return res.status(409).json({ 
+        error: `El campo ${field} ya existe: ${value}`,
+        field,
+        value
+      });
     }
-    res.status(500).json({ error: 'Server error creating employee' });
+    res.status(500).json({ error: 'Server error creating employee', details: error.message });
   }
 });
 
