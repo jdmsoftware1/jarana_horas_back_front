@@ -57,7 +57,11 @@ export const validateOrigin = (allowedOrigins) => {
 
 // Middleware para rutas de admin solamente
 export const adminOriginOnly = validateOrigin([
-  process.env.ADMIN_URL || 'http://localhost:5174',
+  process.env.ADMIN_URL || 'http://localhost:5173',
+  process.env.FRONTEND_URL || 'http://localhost:5173',
+  'http://localhost:5173',
+  'http://localhost:5174',
+  /^https:\/\/.*\.onrender\.com$/,
   /^https:\/\/admin\.AliadaDigital\./,
   /^https:\/\/.*-admin\.netlify\.app$/
 ]);
