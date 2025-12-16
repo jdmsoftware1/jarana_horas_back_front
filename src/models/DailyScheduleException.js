@@ -1,4 +1,4 @@
-import { DataTypes } from 'sequelize';
+import { DataTypes, Op } from 'sequelize';
 import sequelize from '../config/database.js';
 
 export const DailyScheduleException = sequelize.define('DailyScheduleException', {
@@ -169,7 +169,6 @@ DailyScheduleException.getExceptionTypes = function() {
 };
 
 DailyScheduleException.findByDateRange = async function(employeeId, startDate, endDate) {
-  const { Op } = await import('sequelize');
   return await this.findAll({
     where: {
       employeeId,

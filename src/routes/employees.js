@@ -2,6 +2,7 @@ import express from 'express';
 import speakeasy from 'speakeasy';
 import QRCode from 'qrcode';
 import { v4 as uuidv4 } from 'uuid';
+import { Op } from 'sequelize';
 import { Employee } from '../models/index.js';
 import { authMiddleware, adminMiddleware } from '../middleware/authMiddleware.js';
 
