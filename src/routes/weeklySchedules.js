@@ -1,6 +1,7 @@
 import express from 'express';
 import { Op } from 'sequelize';
 import { Employee, WeeklySchedule, ScheduleTemplate, ScheduleTemplateDay, DailyScheduleException, ScheduleBreak } from '../models/index.js';
+import notificationService from '../services/notificationService.js';
 
 const router = express.Router();
 
@@ -261,6 +262,20 @@ router.post('/', async (req, res) => {
         }
       ]
     });
+    
+    // Enviar notificación al empleado sobre el nuevo horario
+    try {
+      const templateName = completeWeeklySchedule.template?.name || 'Horario';
+      await notificationService.sendScheduleAssigned(
+        employeeId,
+        weekNumber,
+        year,
+        templateName
+      );
+      console.log('📤 Notificación de horario enviada a empleado:', employeeId);
+    } catch (notifError) {
+      console.error('⚠️ Error enviando notificación (no crítico):', notifError.message);
+    }
     
     res.status(201).json({ data: completeWeeklySchedule });
   } catch (error) {

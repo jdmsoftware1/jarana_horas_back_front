@@ -11,6 +11,8 @@ import { AbsenceCategory } from './AbsenceCategory.js';
 import AccessLog from './AccessLog.js';
 import { AIConversation } from './AIConversation.js';
 import { Document } from './Document.js';
+import PushToken from './PushToken.js';
+import Notification from './Notification.js';
 
 // Define associations
 Employee.hasMany(Record, {
@@ -239,4 +241,26 @@ Document.belongsTo(Employee, {
   as: 'reviewer'
 });
 
-export { Employee, Record, Schedule, ScheduleTemplate, ScheduleTemplateDay, WeeklySchedule, DailyScheduleException, ScheduleBreak, Vacation, AbsenceCategory, AccessLog, AIConversation, Document };
+// PushToken associations
+Employee.hasMany(PushToken, {
+  foreignKey: 'employeeId',
+  as: 'pushTokens'
+});
+
+PushToken.belongsTo(Employee, {
+  foreignKey: 'employeeId',
+  as: 'employee'
+});
+
+// Notification associations
+Employee.hasMany(Notification, {
+  foreignKey: 'employeeId',
+  as: 'notifications'
+});
+
+Notification.belongsTo(Employee, {
+  foreignKey: 'employeeId',
+  as: 'employee'
+});
+
+export { Employee, Record, Schedule, ScheduleTemplate, ScheduleTemplateDay, WeeklySchedule, DailyScheduleException, ScheduleBreak, Vacation, AbsenceCategory, AccessLog, AIConversation, Document, PushToken, Notification };
