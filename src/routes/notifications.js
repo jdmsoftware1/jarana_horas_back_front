@@ -221,4 +221,85 @@ router.post('/send-bulk', authMiddleware, async (req, res) => {
   }
 });
 
+// ==================== TEST ENDPOINT ====================
+
+/**
+ * POST /api/notifications/test
+ * Endpoint de prueba para verificar que las notificaciones funcionan
+ * Solo disponible en desarrollo
+ */
+router.post('/test', authMiddleware, async (req, res) => {
+  try {
+    const employeeId = req.user.id;
+    
+    // Crear notificación de prueba
+    const notification = await notificationService.sendToEmployee(
+      employeeId,
+      'general',
+      '🧪 Notificación de Prueba',
+      'Si ves esto, las notificaciones funcionan correctamente!',
+      { test: true, timestamp: new Date().toISOString() }
+    );
+    
+    res.json({ 
+      success: true, 
+      message: 'Notificación de prueba enviada',
+      notification,
+      note: 'Si no recibes la notificación push, verifica que tienes un token registrado y Firebase configurado'
+    });
+  } catch (error) {
+    console.error('Error en test de notificación:', error);
+    res.status(500).json({ error: 'Error enviando notificación de prueba', details: error.message });
+  }
+});
+
+/**
+ * GET /api/notifications/debug
+ * Ver estado del sistema de notificaciones (solo desarrollo)
+ */
+router.get('/debug', authMiddleware, async (req, res) => {
+  try {
+    const employeeId = req.user.id;
+    const { PushToken, Notification } = await import('../models/index.js');
+    
+    // Obtener tokens del usuario
+    const tokens = await PushToken.findAll({
+      where: { employeeId },
+      attributes: ['id', 'token', 'platform', 'isActive', 'lastUsedAt', 'createdAt']
+    });
+    
+    // Obtener últimas 5 notificaciones
+    const notifications = await Notification.findAll({
+      where: { employeeId },
+      order: [['createdAt', 'DESC']],
+      limit: 5,
+      attributes: ['id', 'type', 'title', 'status', 'sentAt', 'readAt', 'createdAt']
+    });
+    
+    // Verificar Firebase
+    const firebaseConfigured = !!process.env.FIREBASE_SERVICE_ACCOUNT;
+    
+    res.json({
+      employeeId,
+      tokens: {
+        total: tokens.length,
+        active: tokens.filter(t => t.isActive).length,
+        list: tokens
+      },
+      notifications: {
+        recent: notifications
+      },
+      firebase: {
+        configured: firebaseConfigured,
+        note: firebaseConfigured 
+          ? 'Firebase Admin SDK configurado' 
+          : 'FIREBASE_SERVICE_ACCOUNT no configurado - las notificaciones se guardan pero no se envían'
+      }
+    });
+  } catch (error) {
+    console.error('Error en debug:', error);
+    res.status(500).json({ error: 'Error obteniendo debug info', details: error.message });
+  }
+});
+
 export default router;

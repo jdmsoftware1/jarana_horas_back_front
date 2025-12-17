@@ -10,21 +10,28 @@ const initializeFirebase = () => {
   
   try {
     // Firebase se inicializa con credenciales desde variable de entorno
-    const serviceAccount = process.env.FIREBASE_SERVICE_ACCOUNT 
-      ? JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT)
-      : null;
-    
-    if (serviceAccount) {
-      admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount),
-      });
-      firebaseInitialized = true;
-      console.log('✅ Firebase Admin SDK inicializado');
-    } else {
+    if (!process.env.FIREBASE_SERVICE_ACCOUNT) {
       console.warn('⚠️ FIREBASE_SERVICE_ACCOUNT no configurado - notificaciones deshabilitadas');
+      return;
     }
+    
+    let serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+    
+    // Arreglar private_key si tiene \\n literales en lugar de saltos de línea reales
+    if (serviceAccount.private_key && typeof serviceAccount.private_key === 'string') {
+      serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
+    }
+    
+    admin.initializeApp({
+      credential: admin.credential.cert(serviceAccount),
+    });
+    firebaseInitialized = true;
+    console.log('✅ Firebase Admin SDK inicializado - Proyecto:', serviceAccount.project_id);
   } catch (error) {
     console.error('❌ Error inicializando Firebase:', error.message);
+    if (error.message.includes('private key')) {
+      console.error('   💡 Tip: Verifica que FIREBASE_SERVICE_ACCOUNT tenga el JSON completo del Service Account');
+    }
   }
 };
 
