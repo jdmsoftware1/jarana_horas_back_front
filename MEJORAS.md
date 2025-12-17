@@ -157,12 +157,13 @@ Juan ha trabajado 30 minutos más de lo previsto hoy.
 
 ## 📊 Resumen de Mejoras
 
-| # | Funcionalidad | Estado |
-|---|--------------|--------|
-| 1 | Ver Horas Trabajadas en Dashboard | ✅ Completado |
-| 2 | Análisis Detallado (Estimadas vs Reales) | ✅ Completado |
-| 3 | Editar Información de Empleados | ✅ Completado |
-| 4 | Asistente IA para Consultas de Horas | ✅ Completado |
+| # | Funcionalidad | Estado | Fecha |
+|---|--------------|--------|-------|
+| 1 | Ver Horas Trabajadas en Dashboard | ✅ Completado | Nov 2024 |
+| 2 | Análisis Detallado (Estimadas vs Reales) | ✅ Completado | Nov 2024 |
+| 3 | Editar Información de Empleados | ✅ Completado | Nov 2024 |
+| 4 | Asistente IA para Consultas de Horas | ✅ Completado | Nov 2024 |
+| 5 | Notificaciones Push (FCM) | ✅ Completado | Dic 2025 |
 
 ---
 
@@ -173,10 +174,55 @@ Juan ha trabajado 30 minutos más de lo previsto hoy.
 - Generar reportes mensuales en PDF
 - Gráficos de tendencias de horas
 
-### **🔔 Notificaciones**
+### **🔔 Notificaciones Push (Firebase Cloud Messaging)** ✅ IMPLEMENTADO
+**Fecha:** Diciembre 2025  
+**Estado:** ✅ Completado
+
+#### **¿Qué se añadió?**
+Sistema completo de notificaciones push para la app móvil usando Firebase Cloud Messaging.
+
+#### **Tipos de notificaciones:**
+| Tipo | Trigger | Mensaje |
+|------|---------|---------|
+| `schedule_assigned` | Admin asigna horario | "📅 Nuevo horario asignado para la semana X" |
+| `document_pending` | Admin sube documento | "📄 Nuevo documento disponible: {título}" |
+| `absence_status` | Admin aprueba/rechaza ausencia | "✅ Tu solicitud de vacaciones ha sido aprobada" |
+| `check_in_reminder` | Cron job (pendiente) | "⏰ ¡No olvides fichar!" |
+| `shift_ending` | Cron job (pendiente) | "🔔 Tu turno termina en 5 minutos" |
+
+#### **Archivos creados:**
+- `src/models/PushToken.js` - Modelo para tokens de dispositivos
+- `src/models/Notification.js` - Historial de notificaciones
+- `src/services/notificationService.js` - Lógica de envío con Firebase Admin SDK
+- `src/routes/notifications.js` - Endpoints API
+
+#### **Endpoints disponibles:**
+```
+POST /api/notifications/register-token    # Registrar token FCM
+POST /api/notifications/unregister-token  # Desactivar token (logout)
+GET  /api/notifications                   # Obtener notificaciones
+GET  /api/notifications/unread-count      # Contar no leídas
+PUT  /api/notifications/:id/read          # Marcar como leída
+PUT  /api/notifications/read-all          # Marcar todas como leídas
+POST /api/notifications/send              # Enviar notificación (admin)
+POST /api/notifications/send-bulk         # Enviar a múltiples (admin)
+```
+
+#### **Configuración requerida:**
+- Variable de entorno `FIREBASE_SERVICE_ACCOUNT` con el JSON del Service Account de Firebase
+- Proyecto Firebase: `aliadadigital-notifications`
+
+#### **Triggers automáticos integrados en:**
+- `src/routes/weeklySchedules.js` - Al crear/actualizar horario
+- `src/routes/documents.js` - Al subir documento para empleado
+- `src/routes/vacations.js` - Al aprobar/rechazar ausencia
+
+---
+
+### **🔔 Notificaciones (Ideas pendientes)**
 - Alertas cuando un empleado supera X horas extra
 - Avisos de déficit de horas
-- Recordatorios automáticos de fichaje
+- Cron job para recordatorios automáticos de fichaje
 
 ### **🤖 Mejoras Adicionales al Asistente IA**
 - Consultas sobre vacaciones pendientes
@@ -196,4 +242,4 @@ Si necesitas alguna funcionalidad adicional o tienes ideas para mejorar el siste
 
 ---
 
-**Última actualización:** 10 de Noviembre de 2024
+**Última actualización:** 17 de Diciembre de 2025

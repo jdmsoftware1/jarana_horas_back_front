@@ -1,6 +1,7 @@
 import express from 'express';
 import { Op } from 'sequelize';
 import { Employee, Vacation, AbsenceCategory } from '../models/index.js';
+import notificationService from '../services/notificationService.js';
 
 const router = express.Router();
 
@@ -231,6 +232,21 @@ router.put('/:id/status', async (req, res) => {
       ]
     });
     
+    // Enviar notificación al empleado sobre el estado de su ausencia
+    try {
+      const categoryName = updatedVacation.category?.name || updatedVacation.type || 'Ausencia';
+      const startDateFormatted = new Date(updatedVacation.startDate).toLocaleDateString('es-ES');
+      await notificationService.sendAbsenceStatus(
+        updatedVacation.employeeId,
+        status,
+        categoryName,
+        startDateFormatted
+      );
+      console.log('📤 Notificación de ausencia enviada a empleado:', updatedVacation.employeeId);
+    } catch (notifError) {
+      console.error('⚠️ Error enviando notificación (no crítico):', notifError.message);
+    }
+
     res.json(updatedVacation);
   } catch (error) {
     console.error('Update vacation status error:', error);

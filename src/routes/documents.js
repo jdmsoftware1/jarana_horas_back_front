@@ -6,6 +6,7 @@ import { fileURLToPath } from 'url';
 import { Op } from 'sequelize';
 import { Document, Employee } from '../models/index.js';
 import { authMiddleware } from '../middleware/authMiddleware.js';
+import notificationService from '../services/notificationService.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -195,6 +196,31 @@ router.post('/admin-to-employee', authMiddleware, upload.single('file'), async (
         { model: Employee, as: 'recipient', attributes: ['id', 'name', 'employeeCode'] }
       ]
     });
+
+    // Enviar notificación al empleado sobre el nuevo documento
+    try {
+      if (recipientId) {
+        // Documento para un empleado específico
+        await notificationService.sendDocumentPending(
+          recipientId,
+          title,
+          document.id
+        );
+        console.log('📤 Notificación de documento enviada a empleado:', recipientId);
+      } else {
+        // Documento para todos los empleados - enviar a todos
+        const allEmployees = await Employee.findAll({
+          where: { role: 'employee', isActive: true },
+          attributes: ['id']
+        });
+        for (const emp of allEmployees) {
+          await notificationService.sendDocumentPending(emp.id, title, document.id);
+        }
+        console.log('📤 Notificación de documento enviada a todos los empleados');
+      }
+    } catch (notifError) {
+      console.error('⚠️ Error enviando notificación (no crítico):', notifError.message);
+    }
 
     res.status(201).json({
       message: 'Documento enviado correctamente',
