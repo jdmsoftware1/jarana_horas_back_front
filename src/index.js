@@ -94,6 +94,17 @@ app.get('/health', (req, res) => {
   res.json({ status: 'OK', timestamp: new Date().toISOString() });
 });
 
+// Feature flags endpoint - para que el frontend sepa qué funcionalidades están habilitadas
+app.get('/api/config/features', (req, res) => {
+  res.json({
+    aiChat: process.env.ENABLE_AI_CHAT === 'true',
+    aiUtils: process.env.ENABLE_AI_UTILS === 'true',
+    twoFactor: process.env.ENABLE_2FA !== 'false',
+    googleAuth: process.env.ENABLE_GOOGLE_AUTH !== 'false',
+    maxEmployees: process.env.NUMBER_EMPLOYEES ? parseInt(process.env.NUMBER_EMPLOYEES) : null
+  });
+});
+
 // API Routes
 app.use('/auth', authRoutes); // Google OAuth routes (sin /api)
 app.use('/api/auth', authRoutes); // JWT auth routes

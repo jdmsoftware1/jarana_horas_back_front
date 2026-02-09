@@ -49,6 +49,21 @@ router.post('/employees',
     try {
       const { name, email, pin, role = 'employee' } = req.body;
 
+      // Verificar límite máximo de empleados (no cuenta admins)
+      const maxEmployees = process.env.NUMBER_EMPLOYEES ? parseInt(process.env.NUMBER_EMPLOYEES) : null;
+      if (maxEmployees && role !== 'admin') {
+        const currentEmployeeCount = await Employee.count({
+          where: { role: 'employee' }
+        });
+        if (currentEmployeeCount >= maxEmployees) {
+          return res.status(403).json({ 
+            error: `Límite máximo de empleados alcanzado (${maxEmployees}). No se pueden crear más empleados.`,
+            maxEmployees,
+            currentCount: currentEmployeeCount
+          });
+        }
+      }
+
       // Verificar si el email ya existe
       const existingEmployee = await Employee.findOne({ where: { email } });
       if (existingEmployee) {
